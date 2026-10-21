@@ -13,8 +13,6 @@ This implementation develops the Group 8 BFB 321 proposal into a complete Flask 
 | David de Villiers | u23570972 |
 | David Plumb | u23526263 |
 
-The public GitHub repository for submission should be named `BFB321_group_8`. Only the team representative should submit its full GitHub URL on behalf of the group.
-
 ![Dashboard showing stock KPIs and recent movements](docs/screenshots/dashboard.png)
 
 ![Replenishment planner showing full-pack order suggestions](docs/screenshots/replenishment.png)
@@ -198,10 +196,6 @@ Test migration and restore steps on a non-production database first. Keep daily 
 - The schema can add users and shops without changing replenishment calculations.
 - Shop codes may replace public-facing names. No customer personal information is collected.
 - A larger deployment should add CSRF protection for JSON writes, HTTPS, managed backups, rate limiting and stronger administration controls.
-
-## Academic note
-
-The source and report text in this package were written specifically for this project. The team must still run the final files through the University's Turnitin process and confirm a similarity score of 15% or lower; no unverified Turnitin result is claimed here.
 
 ## References used from the proposal
 
