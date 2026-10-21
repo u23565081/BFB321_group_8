@@ -1,0 +1,13 @@
+USE spaza_inventory;
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS order_lines;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS demand_history;
+DROP TABLE IF EXISTS stock_movements;
+DROP TABLE IF EXISTS inventory_balances;
+DROP TABLE IF EXISTS products;
+DROP TABLE IF EXISTS suppliers;
+DROP TABLE IF EXISTS shops;
+DROP TABLE IF EXISTS users;
+SET FOREIGN_KEY_CHECKS = 1;
+

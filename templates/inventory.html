@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Stock ledger | StockWise Soweto{% endblock %}
+{% block content %}
+<section class="page-shell" data-page="inventory" data-shop-id="{{ shop.id }}">
+  <div class="page-heading"><span class="eyebrow">F1 · Reliable stock records</span><h1>Stock ledger</h1><p>Record daily movements and keep one balance for every product.</p></div>
+  <div class="split-layout">
+    <section class="panel form-panel">
+      <div class="panel-heading"><div><h2>Record a movement</h2><p>Sales and losses reduce the balance. Receipts add stock.</p></div></div>
+      <form id="movement-form" class="stack-form" novalidate>
+        <label>Product<select name="product_id" required><option value="">Choose a product</option>{% for row in balances %}<option value="{{ row.product_id }}" data-product-name="{{ row.product.name }}">{{ row.product.name }} ({{ row.on_hand }} on hand)</option>{% endfor %}</select><small class="field-error"></small></label>
+        <div class="form-row"><label>Movement<select name="movement_type" required><option value="sale">Sale</option><option value="receipt">Receipt</option><option value="loss">Loss / damage</option><option value="return">Customer return</option><option value="adjustment_in">Count adjustment +</option><option value="adjustment_out">Count adjustment −</option></select></label><label>Quantity<input name="quantity" type="number" min="1" step="1" placeholder="e.g. 6" required><small class="field-error"></small></label></div>
+        <label>Note <span class="optional">Optional</span><input name="note" maxlength="255" placeholder="e.g. Till slip 104"></label>
+        <button class="button button-primary button-full" type="submit"><span class="button-label">Save movement</span><span class="spinner" hidden></span></button>
+        <div class="form-message" role="alert" hidden></div>
+      </form>
+    </section>
+    <section class="panel table-panel">
+      <div class="panel-heading"><div><h2>Current balances</h2><p>{{ balances|length }} products · updated from the ledger</p></div><label class="search-box"><span class="sr-only">Search products</span><input id="stock-search" type="search" placeholder="Search stock..."></label></div>
+      <div class="table-wrap">
+        <table id="inventory-table"><thead><tr><th scope="col">Product</th><th scope="col">On hand</th><th scope="col">Pack</th><th scope="col">Value</th><th scope="col">Status</th></tr></thead><tbody>
+        {% for row in balances %}<tr data-product-row="{{ row.product_id }}" data-search="{{ row.product.name|lower }} {{ row.product.sku|lower }}"><td><strong>{{ row.product.name }}</strong><small>{{ row.product.sku }}</small></td><td data-balance>{{ row.on_hand }}</td><td>{{ row.product.pack_size }}</td><td data-stock-value>R{{ "{:,.2f}".format(row.on_hand * row.product.unit_cost) }}</td><td><span data-stock-status class="badge {{ 'badge-red' if row.on_hand == 0 else 'badge-amber' if row.on_hand <= row.product.pack_size else 'badge-green' }}">{{ 'Out' if row.on_hand == 0 else 'Low' if row.on_hand <= row.product.pack_size else 'Healthy' }}</span></td></tr>{% endfor %}
+        </tbody></table>
+        <div id="inventory-empty" class="empty-state compact" hidden><strong>No matching product</strong><p>Try a different name or SKU.</p></div>
+      </div>
+    </section>
+  </div>
+</section>
+{% endblock %}

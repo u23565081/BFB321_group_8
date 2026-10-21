@@ -1,0 +1,6 @@
+metric,reactive_baseline,stockwise_rule
+stockout_sku_days,18,5
+emergency_trips,56,0
+average_stock_value,3507.05,3384.36
+constraint_breaches,0,0
+availability_percent,96.8,99.1

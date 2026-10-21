@@ -1,0 +1,16 @@
+{
+  "reactive": {
+    "stockout_sku_days": 18,
+    "emergency_trips": 56,
+    "average_stock_value": 3507.05,
+    "constraint_breaches": 0,
+    "availability_percent": 96.8
+  },
+  "stockwise": {
+    "stockout_sku_days": 5,
+    "emergency_trips": 0,
+    "average_stock_value": 3384.36,
+    "constraint_breaches": 0,
+    "availability_percent": 99.1
+  }
+}

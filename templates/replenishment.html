@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Replenishment | StockWise Soweto{% endblock %}
+{% block content %}
+<section class="page-shell" data-page="replenishment" data-shop-id="{{ shop.id }}">
+  <div class="page-heading"><span class="eyebrow">F2–F4 · Timely and affordable ordering</span><h1>Replenishment planner</h1><p>Build a full-pack basket using recent demand, delivery time, cash and storage.</p></div>
+  <section class="panel planner-controls">
+    <form id="recommendation-form" class="inline-form">
+      <label>Supplier<select name="supplier_id" required>{% for supplier in suppliers %}<option value="{{ supplier.id }}">{{ supplier.name }} · {{ supplier.lead_time_days }} day lead time</option>{% endfor %}</select></label>
+      <label>Cash available (R)<input name="budget" type="number" min="0" step="10" value="{{ shop.cash_budget|int }}" required></label>
+      <button class="button button-primary" type="submit"><span class="button-label">Calculate basket</span><span class="spinner" hidden></span></button>
+    </form>
+    <p class="helper-text">Uses 14 days of demand, {{ shop.review_period_days }}-day review periods and {{ shop.safety_stock_days }} day of safety stock.</p>
+  </section>
+  <div id="recommendation-status" class="status-banner" role="status">Choose a supplier and calculate a basket.</div>
+  <section class="panel table-panel">
+    <div class="panel-heading"><div><h2>Suggested basket</h2><p>Priority goes to products with the fewest days of cover.</p></div><span class="badge badge-blue">Owner approval required</span></div>
+    <div id="recommendation-loading" class="loading-state" hidden><span class="loading-bar"></span><span class="loading-bar short"></span><span class="loading-bar"></span></div>
+    <div class="table-wrap">
+      <table id="recommendation-table" hidden><thead><tr><th>Product</th><th>Demand/day</th><th>Cover</th><th>Target</th><th>Suggested</th><th>Basket qty</th><th>Line cost</th></tr></thead><tbody></tbody></table>
+      <div id="recommendation-empty" class="empty-state"><span>↗</span><strong>No basket calculated yet</strong><p>Your suggested quantities will appear here.</p></div>
+    </div>
+    <div id="basket-summary" class="basket-summary" hidden><div><small>Product cost</small><strong id="product-cost">R0.00</strong></div><div><small>Delivery</small><strong id="delivery-cost">R0.00</strong></div><div class="basket-total"><small>Total basket</small><strong id="total-cost">R0.00</strong></div><button id="create-order" class="button button-primary" type="button">Create draft order</button></div>
+    <div id="planner-error" class="error-state" role="alert" hidden><strong>We could not calculate the basket.</strong><p></p><button class="button button-secondary" type="button" data-retry>Try again</button></div>
+  </section>
+</section>
+{% endblock %}
+

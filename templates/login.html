@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Sign in | StockWise Soweto{% endblock %}
+{% block content %}
+<section class="auth-layout">
+  <div class="auth-panel">
+    <span class="eyebrow">Working demonstration</span>
+    <h1>Welcome back</h1>
+    <p>Sign in to review stock and prepare the next order.</p>
+    <form method="post" class="stack-form">
+      <label>Email address<input type="email" name="email" value="owner@demo.co.za" required autocomplete="email"></label>
+      <label>Password<input type="password" name="password" value="demo2026" required autocomplete="current-password"></label>
+      <label class="check-row"><input type="checkbox" name="remember"> Keep me signed in on this device</label>
+      <button class="button button-primary button-full" type="submit">Sign in</button>
+    </form>
+    <div class="demo-note"><strong>Demo details are filled in.</strong><span>Select “Sign in” to continue.</span></div>
+  </div>
+  <div class="auth-story"><div><span class="quote-mark">“</span><blockquote>It helps me see what needs attention without doing the sums on paper each time.</blockquote><p>Prototype user scenario</p></div></div>
+</section>
+{% endblock %}
+

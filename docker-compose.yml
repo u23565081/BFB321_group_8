@@ -1,0 +1,38 @@
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: spaza_inventory
+      MYSQL_USER: spaza_user
+      MYSQL_PASSWORD: spaza_password
+      MYSQL_ROOT_PASSWORD: local_root_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-plocal_root_password"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  web:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      FLASK_ENV: production
+      SECRET_KEY: local-demo-secret-change-before-production
+      DATABASE_URL: mysql+pymysql://spaza_user:spaza_password@db:3306/spaza_inventory
+      LOG_LEVEL: INFO
+    command: ["sh", "-c", "python database/seed.py && gunicorn --bind 0.0.0.0:5000 --workers 2 --access-logfile - run:app"]
+    ports:
+      - "5000:5000"
+
+volumes:
+  mysql_data:
+

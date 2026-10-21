@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="StockWise Soweto - practical replenishment support for spaza shops.">
+  <title>{% block title %}StockWise Soweto{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css', v='20261021') }}">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('web.dashboard') if current_user.is_authenticated else url_for('web.home') }}" aria-label="StockWise Soweto home">
+      <span class="brand-mark" aria-hidden="true">SW</span>
+      <span><strong>StockWise</strong><small>Soweto</small></span>
+    </a>
+    {% if current_user.is_authenticated %}
+      <button class="menu-button" type="button" aria-expanded="false" aria-controls="main-nav">Menu</button>
+      <nav id="main-nav" class="main-nav" aria-label="Main navigation">
+        <a href="{{ url_for('web.dashboard') }}" class="{{ 'active' if request.endpoint == 'web.dashboard' }}">Overview</a>
+        <a href="{{ url_for('web.inventory') }}" class="{{ 'active' if request.endpoint == 'web.inventory' }}">Stock</a>
+        <a href="{{ url_for('web.replenishment') }}" class="{{ 'active' if request.endpoint == 'web.replenishment' }}">Replenish</a>
+        <a href="{{ url_for('web.orders') }}" class="{{ 'active' if request.endpoint == 'web.orders' }}">Orders</a>
+        <a href="{{ url_for('web.impact') }}" class="{{ 'active' if request.endpoint == 'web.impact' }}">Impact</a>
+      </nav>
+      <div class="profile-menu">
+        <span><strong>{{ current_user.name }}</strong><small>{{ current_user.role|title }}</small></span>
+        <form method="post" action="{{ url_for('auth.logout') }}"><button class="button button-quiet" type="submit">Sign out</button></form>
+      </div>
+    {% else %}
+      <a class="button button-primary" href="{{ url_for('auth.login') }}">Open demo</a>
+    {% endif %}
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-stack" aria-live="polite">
+        {% for category, message in messages %}<div class="flash flash-{{ category }}">{{ message }}</div>{% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <main id="main-content">{% block content %}{% endblock %}</main>
+  <footer class="footer"><span>StockWise Soweto</span><span>Group 8 · BFB 321 · 2026</span></footer>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <script src="{{ url_for('static', filename='js/app.js', v='20261021') }}" defer></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

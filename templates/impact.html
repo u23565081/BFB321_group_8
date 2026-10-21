@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Impact | StockWise Soweto{% endblock %}
+{% block content %}
+<section class="page-shell">
+  <div class="page-heading"><span class="eyebrow">O2–O4 · Evaluation</span><h1>Expected impact</h1><p>A transparent comparison using a deterministic 28-day simulation. These are model results, not live shop outcomes.</p></div>
+  <div class="impact-highlight"><div><span>Simulated change</span><strong>−72%</strong><p>stockout SKU-days compared with reactive ordering</p></div><div class="impact-chart" aria-label="Stockout SKU-days decreased from 18 to 5"><div><span>Reactive baseline</span><i style="--bar: 100%">18</i></div><div><span>StockWise rule</span><i class="green-bar" style="--bar: 28%">5</i></div></div></div>
+  <div class="kpi-grid impact-kpis"><article class="kpi-card"><div><small>Emergency trips</small><strong>56 → 0</strong><span class="positive">No emergency collections in this run</span></div></article><article class="kpi-card"><div><small>Average stock value</small><strong>R3 507 → R3 384</strong><span class="positive">3.5% lower</span></div></article><article class="kpi-card"><div><small>Constraint breaches</small><strong>0 → 0</strong><span class="positive">Cash limit maintained</span></div></article><article class="kpi-card"><div><small>Availability</small><strong>96.8% → 99.1%</strong><span class="positive">2.3 percentage points</span></div></article></div>
+  <div class="dashboard-grid">
+    <section class="panel"><div class="panel-heading"><div><h2>How the result was tested</h2><p>Same demand and lead-time scenario for both methods.</p></div></div><ol class="method-list"><li><span>1</span><p>Twenty non-refrigerated SKUs over 28 days.</p></li><li><span>2</span><p>Reactive baseline orders only after stock reaches zero.</p></li><li><span>3</span><p>StockWise uses cover, full packs and budget/storage checks.</p></li><li><span>4</span><p>Fixed random seed makes the result repeatable.</p></li></ol></section>
+    <section class="panel"><div class="panel-heading"><div><h2>Sustainability and scale</h2><p>Designed for low-cost use and careful expansion.</p></div></div><ul class="plain-list"><li><strong>Use existing phones</strong><span>No new scanning equipment is required.</span></li><li><strong>Protect privacy</strong><span>Shop codes replace names; no customer personal data is stored.</span></li><li><strong>Add more shops</strong><span>Shop-level records and role checks support multi-site growth.</span></li><li><strong>Keep people in control</strong><span>Suggestions are provisional when demand data is weak.</span></li></ul></section>
+  </div>
+</section>
+{% endblock %}

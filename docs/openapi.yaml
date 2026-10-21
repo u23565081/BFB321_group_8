@@ -1,0 +1,151 @@
+openapi: 3.0.3
+info:
+  title: StockWise Soweto API
+  version: 1.0.0
+  description: Authenticated REST API for inventory, replenishment and supplier orders.
+servers:
+  - url: /api/v1
+security:
+  - sessionCookie: []
+paths:
+  /inventory:
+    get:
+      summary: List inventory balances
+      parameters:
+        - {name: shop_id, in: query, required: true, schema: {type: integer}}
+        - {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}
+        - {name: per_page, in: query, schema: {type: integer, minimum: 1, maximum: 50, default: 10}}
+        - {name: q, in: query, description: Product name or SKU filter, schema: {type: string}}
+      responses:
+        '200': {description: Paginated inventory balances, content: {application/json: {schema: {$ref: '#/components/schemas/PaginatedInventory'}}}}
+        '401': {$ref: '#/components/responses/Unauthorised'}
+  /movements:
+    post:
+      summary: Record a sale, receipt, loss, return or adjustment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/MovementInput'}
+      responses:
+        '201': {description: Stock movement recorded}
+        '400': {$ref: '#/components/responses/ValidationError'}
+  /recommendations:
+    get:
+      summary: Calculate a supplier basket under cash and storage constraints
+      parameters:
+        - {name: shop_id, in: query, required: true, schema: {type: integer}}
+        - {name: supplier_id, in: query, required: true, schema: {type: integer}}
+        - {name: budget, in: query, schema: {type: number, minimum: 0}}
+      responses:
+        '200': {description: Replenishment items and basket totals, content: {application/json: {schema: {$ref: '#/components/schemas/Recommendations'}}}}
+  /orders:
+    get:
+      summary: List orders with pagination and optional status filter
+      parameters:
+        - {name: shop_id, in: query, required: true, schema: {type: integer}}
+        - {name: status, in: query, schema: {type: string, enum: [draft, approved, placed, received, cancelled]}}
+        - {name: page, in: query, schema: {type: integer, minimum: 1}}
+      responses:
+        '200': {description: Paginated orders}
+    post:
+      summary: Create a draft supplier order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/OrderInput'}
+      responses:
+        '201': {description: Draft order created}
+        '400': {$ref: '#/components/responses/ValidationError'}
+  /orders/{order_id}/approve:
+    post:
+      summary: Approve a draft after cash and storage checks
+      parameters:
+        - {name: order_id, in: path, required: true, schema: {type: integer}}
+      responses:
+        '200': {description: Order approved}
+        '409': {description: Invalid status or constraint violation}
+  /orders/{order_id}/receive:
+    post:
+      summary: Receive every outstanding line and update the stock ledger
+      parameters:
+        - {name: order_id, in: path, required: true, schema: {type: integer}}
+      responses:
+        '200': {description: Order received and stock balances updated}
+        '409': {description: Invalid order status}
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: session
+  responses:
+    Unauthorised:
+      description: A signed-in session is required
+    ValidationError:
+      description: Input failed validation
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+  schemas:
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error: {type: string}
+        message: {type: string}
+        fields: {type: array, items: {type: string}}
+    MovementInput:
+      type: object
+      required: [shop_id, product_id, movement_type, quantity]
+      properties:
+        shop_id: {type: integer}
+        product_id: {type: integer}
+        movement_type: {type: string, enum: [sale, loss, receipt, return, adjustment_in, adjustment_out]}
+        quantity: {type: integer, minimum: 1}
+        note: {type: string, maxLength: 255}
+    InventoryItem:
+      type: object
+      properties:
+        product_id: {type: integer}
+        sku: {type: string}
+        name: {type: string}
+        on_hand: {type: integer, minimum: 0}
+        stock_value: {type: number}
+        status: {type: string, enum: [healthy, low, out]}
+    PaginatedInventory:
+      type: object
+      properties:
+        items: {type: array, items: {$ref: '#/components/schemas/InventoryItem'}}
+        page: {type: integer}
+        pages: {type: integer}
+        total: {type: integer}
+    OrderInput:
+      type: object
+      required: [shop_id, supplier_id, lines]
+      properties:
+        shop_id: {type: integer}
+        supplier_id: {type: integer}
+        lines:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [product_id, quantity]
+            properties:
+              product_id: {type: integer}
+              quantity: {type: integer, minimum: 1}
+    Recommendations:
+      type: object
+      properties:
+        items: {type: array, items: {type: object}}
+        totals:
+          type: object
+          properties:
+            product_cost: {type: number}
+            delivery_fee: {type: number}
+            total_cost: {type: number}
+        provisional: {type: boolean}
+        message: {type: string}
+
