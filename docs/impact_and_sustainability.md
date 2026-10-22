@@ -4,7 +4,7 @@
 
 The project includes a deterministic 28-day model comparison. The same simulated demand and supplier lead times are used for both methods. The reactive baseline waits until stock reaches zero and then buys a larger catch-up quantity. StockWise reviews every three days and uses the proposal formula, full packs and a R2 500 review budget.
 
-The evaluation covers 20 non-refrigerated SKUs. It uses a fixed random seed (`321`) so another marker can reproduce the same result with `python scripts/evaluate_impact.py`. These figures are simulation outputs and must not be presented as results from operating shops.
+The evaluation covers 20 non-refrigerated SKUs. It uses a fixed random seed (`321`) so any user can reproduce the same result with `python scripts/evaluate_impact.py`. These figures are simulation outputs and must not be presented as results from operating shops.
 
 ## Before-and-after KPI table
 
@@ -43,4 +43,3 @@ The schema already separates records by shop and user. New sites, owners and sup
 ## Limits
 
 The model does not solve theft, supplier shortages, poor roads, unreliable connectivity or limited business skills. Demand is represented with a short average and does not yet model promotions, pay-day effects or seasonality. Perishables are outside the project scope and would need expiry and waste logic. The simulation must be followed by a small, voluntary shop trial before claiming real impact.
-
