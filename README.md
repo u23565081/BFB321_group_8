@@ -38,21 +38,54 @@ This implementation develops the Group 8 BFB 321 proposal into a complete Flask 
 
 These flows cover proposal features F1-F5 and objectives O1-O4.
 
-## Quick start (Windows, SQLite demo)
+## How to open the working application (Windows)
 
-SQLite is provided only to make marking and demonstration easy. The production database design and Docker deployment use MySQL as required by the brief.
+This is the quickest way for the examiner to view the complete application. It uses the included SQLite demonstration database, so MySQL is **not** required for this viewing option.
+
+### Before you start
+
+- Install Python 3.12 or newer from <https://www.python.org/downloads/windows/>.
+- During the Python installation, select **Add Python to PATH**.
+- An internet connection is needed the first time so that the required Python packages can be installed.
+
+### Step 1: Download and extract the project
+
+1. On this GitHub page, select the green **Code** button and then **Download ZIP**.
+2. Extract the downloaded `BFB321_group_8-main.zip` file.
+3. Open the extracted `BFB321_group_8-main` folder.
+
+### Step 2: Open PowerShell in the project folder
+
+Right-click an empty area inside the folder and select **Open in Terminal**. The PowerShell prompt should end with `BFB321_group_8-main>`.
+
+### Step 3: Start the application
+
+Copy and paste this single command into PowerShell, then press Enter:
 
 ```powershell
-cd soweto-spaza-replenishment
 powershell -ExecutionPolicy Bypass -File .\scripts\start.ps1
 ```
 
-Open <http://127.0.0.1:5000> and use:
+The first start may take a few minutes. The script creates a private Python environment, installs the required packages and loads the demonstration data. Wait until PowerShell shows:
 
-- Owner: `owner@demo.co.za` / `demo2026`
+```text
+Running on http://127.0.0.1:5000
+```
+
+### Step 4: Open the application and sign in
+
+Open <http://127.0.0.1:5000> in a web browser and use either of these demonstration accounts:
+
+- Shop owner: `owner@demo.co.za` / `demo2026`
 - Administrator: `admin@demo.co.za` / `admin2026`
 
-The first run creates `.venv`, installs packages and loads the demo data.
+The shop-owner account is recommended for the main demonstration. To stop the application, return to PowerShell and press `Ctrl+C`.
+
+### If PowerShell says that Python was not found
+
+Close and reopen PowerShell after installing Python, then run the start command again. You can confirm that Python is available by running `python --version` or `py --version`.
+
+> **Note:** GitHub displays and stores the project files, but it cannot run this Flask application directly like a normal webpage. The project must be downloaded and started using the steps above.
 
 ## MySQL run (recommended for assessment)
 
