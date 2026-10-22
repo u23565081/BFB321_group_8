@@ -40,8 +40,6 @@ These flows cover proposal features F1-F5 and objectives O1-O4.
 
 ## How to open the working application (Windows)
 
-This is the quickest way for the examiner to view the complete application. It uses the included SQLite demonstration database, so MySQL is **not** required for this viewing option.
-
 ### Before you start
 
 - Install Python 3.12 or newer from <https://www.python.org/downloads/windows/>.
@@ -87,7 +85,7 @@ Close and reopen PowerShell after installing Python, then run the start command 
 
 > **Note:** GitHub displays and stores the project files, but it cannot run this Flask application directly like a normal webpage. The project must be downloaded and started using the steps above.
 
-## MySQL run (recommended for assessment)
+## MySQL run with Docker
 
 Install Docker Desktop, then run:
 
