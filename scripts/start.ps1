@@ -13,27 +13,75 @@ Write-Host "[1/4] Preparing the Python environment..."
 
 $VenvPython = ".\.venv\Scripts\python.exe"
 if (-not (Test-Path $VenvPython)) {
+    function Test-PythonCandidate {
+        param(
+            [string]$Executable,
+            [string[]]$PrefixArguments = @()
+        )
+
+        if (-not $Executable) { return $false }
+
+        try {
+            & $Executable @PrefixArguments -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 12) else 1)" *> $null
+            return $LASTEXITCODE -eq 0
+        } catch {
+            return $false
+        }
+    }
+
     $PythonExe = $null
     $PythonArgs = @()
 
-    $PythonCommand = Get-Command python -ErrorAction SilentlyContinue
-    if ($PythonCommand) {
-        $PythonExe = $PythonCommand.Source
-    } else {
-        $PythonLauncher = Get-Command py -ErrorAction SilentlyContinue
-        if ($PythonLauncher) {
-            $PythonExe = $PythonLauncher.Source
-            $PythonArgs = @("-3")
+    # Prefer the Windows Python launcher because it is not confused with the
+    # Microsoft Store app-execution alias named python.exe.
+    $PythonLauncher = Get-Command py -ErrorAction SilentlyContinue
+    if ($PythonLauncher -and (Test-PythonCandidate -Executable $PythonLauncher.Source -PrefixArguments @("-3"))) {
+        $PythonExe = $PythonLauncher.Source
+        $PythonArgs = @("-3")
+    }
+
+    if (-not $PythonExe) {
+        foreach ($CommandName in @("python", "python3")) {
+            $PythonCommand = Get-Command $CommandName -ErrorAction SilentlyContinue
+            if ($PythonCommand -and (Test-PythonCandidate -Executable $PythonCommand.Source)) {
+                $PythonExe = $PythonCommand.Source
+                break
+            }
+        }
+    }
+
+    if (-not $PythonExe) {
+        $KnownPythonPaths = @()
+        if ($env:LOCALAPPDATA) {
+            $KnownPythonPaths += Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA "Programs\Python\Python*\python.exe") -File -ErrorAction SilentlyContinue
+        }
+        if ($env:ProgramFiles) {
+            $KnownPythonPaths += Get-ChildItem -Path (Join-Path $env:ProgramFiles "Python*\python.exe") -File -ErrorAction SilentlyContinue
+        }
+
+        foreach ($PythonFile in ($KnownPythonPaths | Sort-Object FullName -Descending)) {
+            if (Test-PythonCandidate -Executable $PythonFile.FullName) {
+                $PythonExe = $PythonFile.FullName
+                break
+            }
         }
     }
 
     if (-not $PythonExe) {
         Write-Host ""
-        Write-Host "Python was not found on this computer." -ForegroundColor Red
-        Write-Host "Install Python 3.12 or newer from https://www.python.org/downloads/windows/"
-        Write-Host "During installation, select 'Add Python to PATH'. Then reopen PowerShell and run this command again."
+        Write-Host "A working Python 3.12 or newer installation was not found." -ForegroundColor Red
+        Write-Host "The 'python' command may currently be the Microsoft Store shortcut rather than Python itself."
+        Write-Host ""
+        Write-Host "Please complete these steps:"
+        Write-Host "  1. Download Python from https://www.python.org/downloads/windows/"
+        Write-Host "  2. Open the downloaded installer."
+        Write-Host "  3. Select 'Add python.exe to PATH', then choose 'Install Now'."
+        Write-Host "  4. Close PowerShell, open it again in this folder and rerun the start command."
         exit 1
     }
+
+    $SelectedPythonVersion = & $PythonExe @PythonArgs --version 2>&1
+    Write-Host "Using $SelectedPythonVersion"
 
     if (Test-Path ".venv") {
         $IncompleteVenv = ".venv-incomplete-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
