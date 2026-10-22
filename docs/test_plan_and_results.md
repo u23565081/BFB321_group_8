@@ -53,7 +53,7 @@ Static asset version parameters were also added so browsers load the corrected C
 
 ## Environment note
 
-The complete application flow was tested with the supported SQLite demonstration configuration. Docker is not installed on the test computer, so the MySQL 8 Docker container could not be started here. The MySQL schema, migration, rollback, Docker configuration and MySQL connection path remain included for assessment and deployment.
+The complete application flow was tested with the supported SQLite demonstration configuration. Docker is not installed on the test computer, so the MySQL 8 Docker container could not be started here. The MySQL schema, migration, rollback, Docker configuration and MySQL connection path remain included for deployment and further testing.
 
 ## Acceptance criteria
 
