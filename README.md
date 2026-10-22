@@ -43,7 +43,7 @@ These flows cover proposal features F1-F5 and objectives O1-O4.
 ### Before you start
 
 - Install Python 3.12 or newer from <https://www.python.org/downloads/windows/>.
-- During the Python installation, select **Add Python to PATH**.
+- Open the downloaded installer, select **Add python.exe to PATH**, and then choose **Install Now**. Downloading the installer without opening it does not install Python.
 - An internet connection is needed the first time so that the required Python packages can be installed.
 
 ### Step 1: Download and extract the project
@@ -81,7 +81,7 @@ The shop-owner account is recommended for the main demonstration. To stop the ap
 
 ### If PowerShell says that Python was not found
 
-Close and reopen PowerShell after installing Python, then run the start command again. You can confirm that Python is available by running `python --version` or `py --version`.
+The `python` command may be a Microsoft Store shortcut rather than a working installation. Open the Python installer you downloaded, select **Add python.exe to PATH**, and complete the installation. Close and reopen PowerShell afterward, then run the start command again. You can confirm that Python is available by running `py --version` or `python --version`.
 
 > **Note:** GitHub displays and stores the project files, but it cannot run this Flask application directly like a normal webpage. The project must be downloaded and started using the steps above.
 
