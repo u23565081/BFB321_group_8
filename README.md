@@ -6,12 +6,27 @@ This implementation develops the Group 8 BFB 321 proposal into a complete Flask 
 
 ## Group members
 
-| Name | Student number |
+| Name | Student number | GitHub username |
+|---|---|---|
+| Andrew Holdt | u23565081 | u23565081 |
+| Austin Ferraz | u23627132 | (GitHub TBD) |
+| David de Villiers | u23570972 | (GitHub TBD) |
+| David Plumb | u23526263 | u23526263-hash |
+
+GitHub usernames are listed only for accounts the member has confirmed. `(GitHub TBD)` means the account is not confirmed yet and must not be guessed.
+
+## Task allocation
+
+This table records work that is visible in the repository history. It stays high-level where a member has not written their own detail. Shared product work from the initial upload is not split into invented personal task lists.
+
+| Member | Focus recorded in the repository |
 |---|---|
-| Andrew Holdt | u23565081 |
-| Austin Ferraz | u23627132 |
-| David de Villiers | u23570972 |
-| David Plumb | u23526263 |
+| Andrew Holdt (`u23565081`) | Initial project upload, and the Windows run documentation in `README.md` and `scripts/start.ps1` (Python installation and the Microsoft Store `python` alias). |
+| Austin Ferraz | (TBD / shared) |
+| David de Villiers | (TBD / shared) |
+| David Plumb (`u23526263-hash`) | Documentation and rubric readiness: GitHub usernames, this allocation, submission-checklist clarifications, and contribution notes. |
+
+Austin Ferraz and David de Villiers are full group members. Replace `(TBD / shared)` only when that member records their own work.
 
 ![Dashboard showing stock KPIs and recent movements](docs/screenshots/dashboard.png)
 
@@ -188,7 +203,8 @@ The script writes JSON and CSV evidence to `docs/generated/`. Its results are mo
 - [ER diagram](docs/erd.svg)
 - [System design and data dictionary](docs/system_design.md)
 - [OpenAPI contract](docs/openapi.yaml)
-- [Impact and sustainability analysis](docs/impact_and_sustainability.md)
+- [Impact and sustainability analysis](docs/impact_and_sustainability.md) (KPI figures are simulation outputs)
+- [Contribution notes](docs/CONTRIBUTING_NOTES.md)
 - [Test plan and results](docs/test_plan_and_results.md)
 - [Website quality assurance report](docs/qa_report.md)
 - [Usability evaluation](docs/usability_test_results.md)

@@ -16,6 +16,8 @@ The evaluation covers 20 non-refrigerated SKUs. It uses a fixed random seed (`32
 | Availability | 96.8% | 99.1% | 2.3 percentage points higher |
 | Recorded cash-limit breaches | 0 | 0 | Target maintained |
 
+*Caption. These KPI figures are simulation outputs from one 28-day run (20 non-refrigerated SKUs, random seed 321). `scripts/evaluate_impact.py` writes the same numbers to `docs/generated/impact_results.json` and `docs/generated/impact_results.csv`. They are not measurements from operating spaza shops, and a field trial may differ.*
+
 The result passes the proposal's O2 target of at least 20% fewer stockout SKU-days. It also passes O3 in this model run because stock value does not rise above the baseline and no budget breach occurs. A field trial may produce a different result.
 
 ```text
