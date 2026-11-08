@@ -13,8 +13,6 @@ This implementation develops the Group 8 BFB 321 proposal into a complete Flask 
 | David de Villiers | u23570972 | 23570972 |
 | David Plumb | u23526263 | u23526263-hash |
 
-GitHub usernames are listed only for accounts the member has confirmed. `(GitHub TBD)` means the account is not confirmed yet and must not be guessed.
-
 ## Task allocation
 
 This table records work that is visible in the repository history. It stays high-level where a member has not written their own detail. Shared product work from the initial upload is not split into invented personal task lists.
