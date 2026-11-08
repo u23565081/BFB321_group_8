@@ -21,7 +21,7 @@ This table records work that is visible in the repository history. It stays high
 |---|---|
 | Andrew Holdt (`u23565081`) | Initial project upload, and the Windows run documentation in `README.md` and `scripts/start.ps1` (Python installation and the Microsoft Store `python` alias). |
 | Austin Ferraz | (TBD / shared) |
-| David de Villiers | (TBD / shared) |
+| David de Villiers (`23570972`) | Improved dashboard accessibility by hiding decorative icons from screen readers and clarified that the low-stock count includes stockouts (PR #2). |
 | David Plumb (`u23526263-hash`) | Documentation and rubric readiness: GitHub usernames, this allocation, submission-checklist clarifications, and contribution notes. |
 
 ![Dashboard showing stock KPIs and recent movements](docs/screenshots/dashboard.png)
