@@ -9,8 +9,8 @@ This implementation develops the Group 8 BFB 321 proposal into a complete Flask 
 | Name | Student number | GitHub username |
 |---|---|---|
 | Andrew Holdt | u23565081 | u23565081 |
-| Austin Ferraz | u23627132 | (GitHub TBD) |
-| David de Villiers | u23570972 | (GitHub TBD) |
+| Austin Ferraz | u23627132 | u23627132-Ferraz |
+| David de Villiers | u23570972 | 23570972 |
 | David Plumb | u23526263 | u23526263-hash |
 
 GitHub usernames are listed only for accounts the member has confirmed. `(GitHub TBD)` means the account is not confirmed yet and must not be guessed.
