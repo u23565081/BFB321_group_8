@@ -8,7 +8,7 @@
   </div>
   <div class="kpi-grid">
     <article class="kpi-card"><div aria-hidden="true" class="kpi-icon green">R</div><div><small>Stock value</small><strong>R{{ "{:,.0f}".format(inventory_value) }}</strong><span>Cash held in inventory</span></div></article>
-    <article class="kpi-card"><div aria-hidden="true" class="kpi-icon amber">!</div><div><small>Low-stock items</small><strong>{{ low_stock }}</strong><span>At or below one pack</span></div></article>
+    <article class="kpi-card"><div aria-hidden="true" class="kpi-icon amber">!</div><div><small>Low-stock items</small><strong>{{ low_stock }}</strong><span>One pack or less, including stockouts</span></div></article>
     <article class="kpi-card"><div aria-hidden="true" class="kpi-icon red">0</div><div><small>Stockouts</small><strong>{{ stockouts }}</strong><span>{{ 'No shelves empty' if stockouts == 0 else 'Needs action today' }}</span></div></article>
     <article class="kpi-card"><div aria-hidden="true" class="kpi-icon blue">↗</div><div><small>Open orders</small><strong>{{ open_orders }}</strong><span>Approved or on the way</span></div></article>
   </div>
