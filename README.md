@@ -24,8 +24,6 @@ This table records work that is visible in the repository history. It stays high
 | David de Villiers | (TBD / shared) |
 | David Plumb (`u23526263-hash`) | Documentation and rubric readiness: GitHub usernames, this allocation, submission-checklist clarifications, and contribution notes. |
 
-Austin Ferraz and David de Villiers are full group members. Replace `(TBD / shared)` only when that member records their own work.
-
 ![Dashboard showing stock KPIs and recent movements](docs/screenshots/dashboard.png)
 
 ![Replenishment planner showing full-pack order suggestions](docs/screenshots/replenishment.png)
