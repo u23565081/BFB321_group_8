@@ -29,7 +29,7 @@
         <li><span class="movement-dot {{ 'in' if movement.quantity > 0 else 'out' }}"></span><div><strong>{{ movement.product.name }}</strong><small>{{ movement.movement_type|replace('_',' ')|title }} · {{ movement.created_at.strftime('%d %b, %H:%M') }}</small></div><b class="{{ 'positive' if movement.quantity > 0 else 'negative' }}">{{ '+' if movement.quantity > 0 else '' }}{{ movement.quantity }}</b></li>
         {% endfor %}
       </ul>
-      {% else %}<div class="empty-state compact"><strong>No movements yet</strong><p>Record a sale or receipt to start the stock ledger.</p></div>{% endif %}
+      {% else %}<div class="empty-state compact"><strong>No movements yet</strong><p>Record a sale or receipt to start the stock ledger.</p><a class="text-link" href="{{ url_for('web.inventory') }}">Record a movement</a></div>{% endif %}
     </section>
   </div>
 </section>
