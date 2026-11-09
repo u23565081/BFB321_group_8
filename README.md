@@ -20,7 +20,7 @@ This table records work that is visible in the repository history. It stays high
 | Member | Focus recorded in the repository |
 |---|---|
 | Andrew Holdt (`u23565081`) | Initial project upload, and the Windows run documentation in `README.md` and `scripts/start.ps1` (Python installation and the Microsoft Store `python` alias). |
-| Austin Ferraz | (TBD / shared) |
+| Austin Ferraz | Improved the dashboard by adding a “Record a movement” link when the stock ledger is empty, giving shop owners a clear starting point for capturing a sale or receipt. Updated recent movement dates to include the year and use semantic HTML time elements, making older entries easier to distinguish and providing machine-readable timestamps. These changes were limited to the dashboard template and reused the existing inventory page. |
 | David de Villiers (`23570972`) | Improved dashboard accessibility by hiding decorative icons from screen readers and clarified that the low-stock count includes stockouts (PR #2). |
 | David Plumb (`u23526263-hash`) | Documentation and rubric readiness: GitHub usernames, this allocation, submission-checklist clarifications, and contribution notes. |
 
