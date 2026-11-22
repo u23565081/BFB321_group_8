@@ -451,6 +451,7 @@ def create_order():
         product_cost += product.unit_cost * quantity
     order.total_cost = product_cost + supplier.delivery_fee
     db.session.commit()
+    current_app.logger.info("Order %s created for shop %s by user %s", order.id, order.shop_id, current_user.id)
     return jsonify({"message": "Draft order created.", "order": serialize_order(order)}), 201
 
 
@@ -476,6 +477,7 @@ def approve_order(order_id):
     order.placed_at = datetime.now(timezone.utc)
     order.expected_at = order.placed_at + timedelta(days=order.supplier.lead_time_days)
     db.session.commit()
+    current_app.logger.info("Order %s approved for shop %s by user %s", order.id, order.shop_id, current_user.id)
     return jsonify({"message": "Order approved and marked as placed.", "order": serialize_order(order)})
 
 
@@ -509,6 +511,7 @@ def receive_order(order_id):
     order.status = "received"
     order.received_at = datetime.now(timezone.utc)
     db.session.commit()
+    current_app.logger.info("Order %s received for shop %s by user %s", order.id, order.shop_id, current_user.id)
     return jsonify({"message": "Order received and stock balances updated.", "order": serialize_order(order)})
 
 
