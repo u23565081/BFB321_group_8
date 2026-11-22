@@ -317,6 +317,16 @@ def order_list():
     )
 
 
+@api_bp.get("/orders/<int:order_id>")
+@login_required
+def get_order(order_id):
+    """Return an accessible order with its lines, or a JSON 404."""
+    order = accessible_order(order_id)
+    if not order:
+        return error("Order not found or access denied.", 404, "not_found")
+    return jsonify(serialize_order(order))
+
+
 @api_bp.post("/orders")
 @login_required
 def create_order():
