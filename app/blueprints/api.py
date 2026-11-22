@@ -192,6 +192,59 @@ def update_product(product_id):
     return save_product(product)
 
 
+def shop_setting_values(data):
+    if not isinstance(data, dict):
+        raise ValueError("Request body must be a JSON object.")
+    minimums = {"storage_capacity_units": 0, "review_period_days": 1, "safety_stock_days": 0}
+    allowed = set(minimums) | {"cash_budget"}
+    if data.keys() - allowed:
+        raise ValueError("Unsupported fields: " + ", ".join(sorted(data.keys() - allowed)) + ".")
+    values = dict(data)
+    for field, minimum in minimums.items():
+        if field in values:
+            value = values[field]
+            if type(value) is not int or not minimum <= value <= 2147483647:
+                raise ValueError(f"{field} must be an integer between {minimum} and 2147483647.")
+    if "cash_budget" in values:
+        value = values["cash_budget"]
+        if type(value) not in (int, float):
+            raise ValueError("cash_budget must be a number greater than or equal to zero.")
+        budget = Decimal(str(value))
+        if not budget.is_finite() or not Decimal("0") <= budget <= Decimal("9999999999.99"):
+            raise ValueError("cash_budget must be a finite number between 0 and 9999999999.99.")
+        values["cash_budget"] = budget
+    return values
+
+
+def serialize_shop_settings(shop):
+    return {
+        "id": shop.id,
+        "cash_budget": float(shop.cash_budget),
+        "storage_capacity_units": shop.storage_capacity_units,
+        "review_period_days": shop.review_period_days,
+        "safety_stock_days": shop.safety_stock_days,
+    }
+
+
+@api_bp.patch("/shops/<int:shop_id>")
+@login_required
+def update_shop(shop_id):
+    """Update an accessible shop's reorder settings and return saved values."""
+    shop = db.session.get(Shop, shop_id)
+    if shop is None:
+        return error("Shop not found.", 404, "not_found")
+    if not owned_shop(shop_id):
+        return error("You cannot update another owner's shop.", 403, "forbidden")
+    try:
+        values = shop_setting_values(request.get_json(silent=True))
+    except ValueError as exc:
+        return error(str(exc))
+    for field, value in values.items():
+        setattr(shop, field, value)
+    db.session.commit()
+    return jsonify(serialize_shop_settings(shop))
+
+
 @api_bp.get("/inventory")
 @login_required
 def inventory_list():
