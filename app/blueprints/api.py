@@ -4,6 +4,7 @@ from decimal import Decimal
 from flask import Blueprint, current_app, jsonify, request
 from flask_login import current_user, login_required
 from sqlalchemy import func, or_
+from sqlalchemy.exc import IntegrityError
 
 from ..extensions import db
 from ..models import (
@@ -36,6 +37,159 @@ def owned_shop(shop_id=None):
     if shop_id:
         return query.filter_by(id=shop_id).first()
     return query.order_by(Shop.id).first()
+
+
+def serialize_product(product):
+    return {
+        "id": product.id,
+        "sku": product.sku,
+        "name": product.name,
+        "category": product.category,
+        "pack_size": product.pack_size,
+        "unit_cost": float(product.unit_cost),
+        "supplier_id": product.supplier_id,
+        "storage_units_per_item": float(product.storage_units_per_item),
+        "active": product.active,
+    }
+
+
+def product_values(data, partial=False):
+    if not isinstance(data, dict):
+        raise ValueError("Request body must be a JSON object.")
+    required = {"sku", "name", "category", "pack_size", "unit_cost", "supplier_id"}
+    allowed = required | {"storage_units_per_item", "active"}
+    if partial:
+        allowed -= {"sku", "supplier_id"}
+    elif required - data.keys():
+        raise ValueError("Required fields: " + ", ".join(sorted(required - data.keys())) + ".")
+    if data.keys() - allowed:
+        raise ValueError("Unsupported fields: " + ", ".join(sorted(data.keys() - allowed)) + ".")
+    values = dict(data)
+    for field, limit in (("sku", 40), ("name", 120), ("category", 80)):
+        if field in values:
+            value = values[field]
+            if not isinstance(value, str) or not value.strip() or len(value.strip()) > limit:
+                raise ValueError(f"{field} must be a non-empty string of at most {limit} characters.")
+            values[field] = value.strip()
+    for field in ("pack_size", "supplier_id"):
+        if field in values:
+            value = values[field]
+            if type(value) is not int or not 0 < value <= 2147483647:
+                raise ValueError(f"{field} must be a positive integer no greater than 2147483647.")
+    for field, maximum in (("unit_cost", "99999999.99"), ("storage_units_per_item", "99999.999")):
+        if field in values:
+            values[field] = product_number(field, values[field], Decimal(maximum))
+    if "active" in values and type(values["active"]) is not bool:
+        raise ValueError("active must be a JSON boolean (true or false).")
+    if "supplier_id" in values and db.session.get(Supplier, values["supplier_id"]) is None:
+        raise ValueError("supplier_id must identify an existing supplier.")
+    return values
+
+
+def product_number(field, value, maximum):
+    if type(value) not in (int, float):
+        raise ValueError(f"{field} must be a number.")
+    number = Decimal(str(value))
+    positive = field == "storage_units_per_item"
+    if not number.is_finite() or number < 0 or (positive and number <= 0):
+        bound = "greater than zero" if positive else "zero or greater"
+        raise ValueError(f"{field} must be a finite number {bound}.")
+    if number > maximum:
+        raise ValueError(f"{field} must be no greater than {maximum}.")
+    if positive and number < Decimal("0.001"):
+        raise ValueError("storage_units_per_item must be at least 0.001 (database precision).")
+    return number
+
+
+def product_page_args():
+    values = {}
+    for field, default in (("page", 1), ("per_page", current_app.config["ITEMS_PER_PAGE"])):
+        try:
+            values[field] = int(request.args.get(field, default))
+        except (TypeError, ValueError):
+            raise ValueError(f"{field} must be a whole number.") from None
+    values["page"] = max(1, values["page"])
+    values["per_page"] = min(50, max(1, values["per_page"]))
+    return values
+
+
+@api_bp.get("/products")
+@login_required
+def product_list():
+    """List products with pagination, category, active and name/SKU filters."""
+    try:
+        page_args = product_page_args()
+    except ValueError as exc:
+        return error(str(exc))
+    query = Product.query
+    if "category" in request.args:
+        query = query.filter_by(category=request.args["category"].strip())
+    if "active" in request.args:
+        active = request.args["active"].strip().lower()
+        if active not in {"true", "false", "1", "0"}:
+            return error("active must be true, false, 1 or 0.", fields=["active"])
+        query = query.filter_by(active=active in {"true", "1"})
+    search = request.args.get("q", "").strip()
+    if search:
+        query = query.filter(or_(Product.name.ilike(f"%{search}%"), Product.sku.ilike(f"%{search}%")))
+    pagination = query.order_by(Product.name, Product.id).paginate(**page_args, error_out=False)
+    return jsonify({
+        "items": [serialize_product(product) for product in pagination.items],
+        "page": pagination.page,
+        "pages": pagination.pages,
+        "total": pagination.total,
+    })
+
+
+@api_bp.get("/products/<int:product_id>")
+@login_required
+def get_product(product_id):
+    """Return one product, or a JSON 404 when it does not exist."""
+    product = db.session.get(Product, product_id)
+    if product is None:
+        return error("Product not found.", 404, "not_found")
+    return jsonify(serialize_product(product))
+
+
+def save_product(product, status=200):
+    try:
+        db.session.add(product)
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return error("Product conflicts with existing data; SKU must be unique.", 409, "conflict")
+    return jsonify(serialize_product(product)), status
+
+
+@api_bp.post("/products")
+@login_required
+def create_product():
+    """Create a validated product for an administrator."""
+    if current_user.role != "admin":
+        return error("Only administrators can create products.", 403, "forbidden")
+    try:
+        values = product_values(request.get_json(silent=True))
+    except ValueError as exc:
+        return error(str(exc))
+    return save_product(Product(**values), 201)
+
+
+@api_bp.patch("/products/<int:product_id>")
+@login_required
+def update_product(product_id):
+    """Partially update editable product fields for an administrator."""
+    if current_user.role != "admin":
+        return error("Only administrators can update products.", 403, "forbidden")
+    product = db.session.get(Product, product_id)
+    if product is None:
+        return error("Product not found.", 404, "not_found")
+    try:
+        values = product_values(request.get_json(silent=True), partial=True)
+    except ValueError as exc:
+        return error(str(exc))
+    for field, value in values.items():
+        setattr(product, field, value)
+    return save_product(product)
 
 
 @api_bp.get("/inventory")
