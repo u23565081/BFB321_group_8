@@ -60,3 +60,53 @@ def test_environment_takes_precedence_over_dotenv(monkeypatch, config_path):
 
     assert config.SQLALCHEMY_DATABASE_URI == database_url
     assert config.SECRET_KEY == secret_key
+
+
+@pytest.mark.parametrize("environment", ["DevelopmentConfig", "ProductionConfig"])
+@pytest.mark.parametrize("database_url", [None, "", "sqlite:///:memory:"])
+def test_non_test_config_requires_mysql(monkeypatch, config_path, environment, database_url):
+    if database_url is None:
+        monkeypatch.delenv("DATABASE_URL", raising=False)
+    else:
+        monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("PYTHON_DOTENV_DISABLED", "1")
+    config = runpy.run_path(str(config_path))[environment]
+    with pytest.raises(RuntimeError, match="Copy .env.example to .env and set DATABASE_URL to your MySQL database"):
+        _ = config.SQLALCHEMY_DATABASE_URI
+
+
+def test_testing_config_uses_in_memory_sqlite(monkeypatch, config_path):
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.setenv("PYTHON_DOTENV_DISABLED", "1")
+    config = runpy.run_path(str(config_path))["TestingConfig"]
+    assert config.SQLALCHEMY_DATABASE_URI == "sqlite:///:memory:"
+
+
+@pytest.mark.parametrize("value, expected", [(None, False), ("0", False), ("false", False), ("1", True), ("true", True)])
+def test_debug_is_opt_in(monkeypatch, config_path, value, expected):
+    monkeypatch.setenv("PYTHON_DOTENV_DISABLED", "1")
+    if value is None:
+        monkeypatch.delenv("FLASK_DEBUG", raising=False)
+    else:
+        monkeypatch.setenv("FLASK_DEBUG", value)
+    configs = runpy.run_path(str(config_path))
+    assert configs["DevelopmentConfig"].DEBUG is expected
+    assert configs["ProductionConfig"].DEBUG is False
+
+
+@pytest.mark.parametrize("entrypoint", ["run.py", "app.py"])
+@pytest.mark.parametrize("host", [None, "192.0.2.10"])
+def test_entrypoint_host_defaults_to_localhost(monkeypatch, entrypoint, host):
+    import sys
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    application = Mock(config={"DEBUG": False})
+    monkeypatch.setitem(sys.modules, "app", SimpleNamespace(create_app=lambda: application))
+    if host is None:
+        monkeypatch.delenv("HOST", raising=False)
+    else:
+        monkeypatch.setenv("HOST", host)
+    path = Path(__file__).resolve().parents[1] / entrypoint
+    runpy.run_path(str(path), run_name="__main__")
+    application.run.assert_called_once_with(host=host or "127.0.0.1", port=5000, debug=False)

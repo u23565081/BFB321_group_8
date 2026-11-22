@@ -32,7 +32,16 @@ def home():
 @web_bp.route("/dashboard")
 @login_required
 def dashboard():
+    from ..services.replenishment_service import generate_recommendations
+
     shop = current_shop()
+    recommendations, _ = generate_recommendations(shop)
+    reorder_now = sum(item.recommended_quantity > 0 for item in recommendations)
+    covers = [
+        item.days_cover for item in recommendations
+        if item.daily_demand > 0 and item.days_cover is not None
+    ]
+    average_days_cover = sum(covers) / len(covers) if covers else None
     balances = InventoryBalance.query.filter_by(shop_id=shop.id).all()
     inventory_value = sum(row.on_hand * float(row.product.unit_cost) for row in balances)
     low_stock = sum(1 for row in balances if row.on_hand <= row.product.pack_size)
@@ -54,6 +63,9 @@ def dashboard():
         stockouts=stockouts,
         open_orders=open_orders,
         recent_movements=recent_movements,
+        reorder_now=reorder_now,
+        average_days_cover=average_days_cover,
+        skus_tracked=len(recommendations),
         shops=Shop.query.filter_by(owner_user_id=current_user.id).all(),
     )
 

@@ -1,27 +1,120 @@
 {% extends "base.html" %}
 {% block title %}Replenishment | StockWise Soweto{% endblock %}
 {% block content %}
-<section class="page-shell" data-page="replenishment" data-shop-id="{{ shop.id }}">
-  <div class="page-heading"><span class="eyebrow">F2–F4 · Timely and affordable ordering</span><h1>Replenishment planner</h1><p>Build a full-pack basket using recent demand, delivery time, cash and storage.</p></div>
-  <section class="panel planner-controls">
-    <form id="recommendation-form" class="inline-form">
-      <label>Supplier<select name="supplier_id" required>{% for supplier in suppliers %}<option value="{{ supplier.id }}">{{ supplier.name }} · {{ supplier.lead_time_days }} day lead time</option>{% endfor %}</select></label>
-      <label>Cash available (R)<input name="budget" type="number" min="0" step="10" value="{{ shop.cash_budget|int }}" required></label>
-      <button class="button button-primary" type="submit"><span class="button-label">Calculate basket</span><span class="spinner" hidden></span></button>
-    </form>
-    <p class="helper-text">Uses 14 days of demand, {{ shop.review_period_days }}-day review periods and {{ shop.safety_stock_days }} day of safety stock.</p>
-  </section>
-  <div id="recommendation-status" class="status-banner" role="status">Choose a supplier and calculate a basket.</div>
-  <section class="panel table-panel">
-    <div class="panel-heading"><div><h2>Suggested basket</h2><p>Priority goes to products with the fewest days of cover.</p></div><span class="badge badge-blue">Owner approval required</span></div>
-    <div id="recommendation-loading" class="loading-state" hidden><span class="loading-bar"></span><span class="loading-bar short"></span><span class="loading-bar"></span></div>
-    <div class="table-wrap">
-      <table id="recommendation-table" hidden><thead><tr><th>Product</th><th>Demand/day</th><th>Cover</th><th>Target</th><th>Suggested</th><th>Basket qty</th><th>Line cost</th></tr></thead><tbody></tbody></table>
-      <div id="recommendation-empty" class="empty-state"><span>↗</span><strong>No basket calculated yet</strong><p>Your suggested quantities will appear here.</p></div>
+  <section class="container py-4" data-page="replenishment" data-shop-id="{{ shop.id }}">
+    <div class="mb-4">
+      <p class="eyebrow">F2-F4 · Timely and affordable ordering</p>
+      <h1>Replenishment planner</h1>
+      <p class="text-body-secondary">Build a full-pack basket using recent demand, delivery time, cash and storage.</p>
     </div>
-    <div id="basket-summary" class="basket-summary" hidden><div><small>Product cost</small><strong id="product-cost">R0.00</strong></div><div><small>Delivery</small><strong id="delivery-cost">R0.00</strong></div><div class="basket-total"><small>Total basket</small><strong id="total-cost">R0.00</strong></div><button id="create-order" class="button button-primary" type="button">Create draft order</button></div>
-    <div id="planner-error" class="error-state" role="alert" hidden><strong>We could not calculate the basket.</strong><p></p><button class="button button-secondary" type="button" data-retry>Try again</button></div>
+    <section class="card mb-3" aria-labelledby="shop-settings-title">
+      <div class="card-body">
+        <h2 id="shop-settings-title" class="h5">Shop settings</h2>
+        <p class="small text-body-secondary">Save the limits and planning periods for {{ shop.name }}.</p>
+        <form id="shop-settings-form" class="row g-3 align-items-end">
+          <div class="col-12 col-md-4">
+            <label class="form-label" for="settings-budget">Cash budget (R)</label>
+            <input class="form-control" id="settings-budget" name="cash_budget" type="number" min="0" max="9999999999.99" step="0.01" value="{{ shop.cash_budget }}" required>
+          </div>
+          <div class="col-12 col-md-4">
+            <label class="form-label" for="settings-review">Review period (days)</label>
+            <input class="form-control" id="settings-review" name="review_period_days" type="number" min="1" max="2147483647" step="1" value="{{ shop.review_period_days }}" required>
+          </div>
+          <div class="col-12 col-md-4">
+            <label class="form-label" for="settings-safety">Safety stock (days)</label>
+            <input class="form-control" id="settings-safety" name="safety_stock_days" type="number" min="0" max="2147483647" step="1" value="{{ shop.safety_stock_days }}" required>
+          </div>
+          <div class="col-12">
+            <button class="btn btn-primary" type="submit">
+              <span>Save settings and recalculate</span>
+              <span class="spinner spinner-border spinner-border-sm ms-2" aria-hidden="true" hidden></span>
+            </button>
+          </div>
+        </form>
+        <div id="shop-settings-message" class="alert mt-3 mb-0" role="status" aria-live="polite" hidden></div>
+      </div>
+    </section>
+    <section class="card mb-3">
+      <div class="card-body">
+        <h2 class="h5">Plan a basket</h2>
+        <form id="recommendation-form" class="row g-3 align-items-end">
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="planner-supplier">Supplier</label>
+            <select class="form-select" id="planner-supplier" name="supplier_id" required>
+              {% for supplier in suppliers %}
+                <option value="{{ supplier.id }}">{{ supplier.name }} · {{ supplier.lead_time_days }} day lead time</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12 col-md-3">
+            <label class="form-label" for="planner-budget">Cash available (R)</label>
+            <input class="form-control" id="planner-budget" name="budget" type="number" min="0" max="9999999999.99" step="0.01" value="{{ shop.cash_budget }}" required>
+          </div>
+          <div class="col-12 col-md-3 d-grid">
+            <button class="btn btn-primary" type="submit">
+              <span>Calculate basket</span>
+              <span class="spinner spinner-border spinner-border-sm ms-2" aria-hidden="true" hidden></span>
+            </button>
+          </div>
+        </form>
+        <p id="planner-assumptions" class="form-text mb-0">Uses 14 days of demand, {{ shop.review_period_days }}-day review periods and {{ shop.safety_stock_days }} day of safety stock.</p>
+      </div>
+    </section>
+    <div id="recommendation-status" class="alert alert-info" role="status">Choose a supplier and calculate a basket.</div>
+    <section class="card">
+      <div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
+          <div>
+            <h2 class="h5">Suggested basket</h2>
+            <p class="small text-body-secondary mb-0">Priority goes to products with the fewest days of cover.</p>
+          </div>
+          <span class="badge text-bg-info align-self-start">Owner approval required</span>
+        </div>
+        <div id="recommendation-loading" class="py-4 text-center" role="status" hidden>
+          <span class="spinner-border text-primary" aria-hidden="true"></span>
+          <span class="visually-hidden">Calculating basket...</span>
+        </div>
+        <div class="table-responsive">
+          <table id="recommendation-table" class="table table-hover align-middle" hidden>
+            <thead>
+              <tr>
+                <th scope="col">Product</th>
+                <th scope="col">Demand/day</th>
+                <th scope="col">Cover</th>
+                <th scope="col">Target</th>
+                <th scope="col">Suggested</th>
+                <th scope="col">Basket qty</th>
+                <th scope="col">Line cost</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="recommendation-empty" class="text-center py-4">
+          <strong>No basket calculated yet</strong>
+          <p class="text-body-secondary mb-0">Your suggested quantities will appear here.</p>
+        </div>
+        <div id="basket-summary" class="border-top pt-3 d-flex flex-wrap align-items-end gap-4" hidden>
+          <div>
+            <small class="d-block text-body-secondary">Product cost</small>
+            <strong id="product-cost">R0.00</strong>
+          </div>
+          <div>
+            <small class="d-block text-body-secondary">Delivery</small>
+            <strong id="delivery-cost">R0.00</strong>
+          </div>
+          <div>
+            <small class="d-block text-body-secondary">Total basket</small>
+            <strong id="total-cost" class="fs-4 text-primary">R0.00</strong>
+          </div>
+          <button id="create-order" class="btn btn-primary ms-md-auto" type="button">Create draft order</button>
+        </div>
+        <div id="planner-error" class="alert alert-danger mb-0" role="alert" hidden>
+          <strong>We could not calculate the basket.</strong>
+          <p></p>
+          <button class="btn btn-outline-danger" type="button" data-retry>Try again</button>
+        </div>
+      </div>
+    </section>
   </section>
-</section>
 {% endblock %}
-

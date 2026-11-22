@@ -1,13 +1,4 @@
 (() => {
-  const menuButton = document.querySelector(".menu-button");
-  const nav = document.querySelector(".main-nav");
-  if (menuButton && nav) {
-    menuButton.addEventListener("click", () => {
-      const isOpen = nav.classList.toggle("open");
-      menuButton.setAttribute("aria-expanded", String(isOpen));
-    });
-  }
-
   const page = document.querySelector("[data-page]");
   if (!page) return;
   const shopId = Number(page.dataset.shopId);
@@ -75,7 +66,7 @@
           row.querySelector("[data-stock-value]").textContent = `R${Number(result.item.stock_value).toFixed(2)}`;
           const badge = row.querySelector("[data-stock-status]");
           badge.textContent = result.item.status === "out" ? "Out" : result.item.status === "low" ? "Low" : "Healthy";
-          badge.className = `badge ${result.item.status === "out" ? "badge-red" : result.item.status === "low" ? "badge-amber" : "badge-green"}`;
+          badge.className = `badge ${result.item.status === "out" ? "text-bg-danger" : result.item.status === "low" ? "text-bg-warning" : "text-bg-success"}`;
         }
         const option = form.querySelector(`select[name="product_id"] option[value="${data.product_id}"]`);
         if (option) option.textContent = `${option.dataset.productName} (${result.item.on_hand} on hand)`;
@@ -99,12 +90,20 @@
     const errorState = document.getElementById("planner-error");
     const summary = document.getElementById("basket-summary");
     const status = document.getElementById("recommendation-status");
+    const createOrder = document.getElementById("create-order");
+    const settingsForm = document.getElementById("shop-settings-form");
+    let calculating = false;
+    let savingSettings = false;
     let currentItems = [];
 
     const money = (value) => `R${Number(value).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
     const calculate = async () => {
+      if (calculating || savingSettings) return;
       if (!form.checkValidity()) { form.reportValidity(); return; }
+      calculating = true;
+      currentItems = [];
+      createOrder.disabled = true;
       const data = new FormData(form);
       const supplierId = Number(data.get("supplier_id"));
       const budget = Number(data.get("budget"));
@@ -131,6 +130,7 @@
         table.hidden = result.items.length === 0;
         empty.hidden = result.items.length > 0;
         summary.hidden = currentItems.length === 0;
+        createOrder.disabled = currentItems.length === 0;
         document.getElementById("product-cost").textContent = money(result.totals.product_cost);
         document.getElementById("delivery-cost").textContent = money(result.totals.delivery_fee);
         document.getElementById("total-cost").textContent = money(result.totals.total_cost);
@@ -141,11 +141,56 @@
         status.textContent = "The calculation needs attention.";
       } finally {
         loading.hidden = true;
+        calculating = false;
         setBusy(button, false);
       }
     };
 
     form?.addEventListener("submit", (event) => { event.preventDefault(); calculate(); });
+    settingsForm?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (calculating || savingSettings || !settingsForm.checkValidity()) {
+        settingsForm.reportValidity();
+        return;
+      }
+      const message = document.getElementById("shop-settings-message");
+      const button = settingsForm.querySelector("button[type=submit]");
+      const plannerButton = form.querySelector("button[type=submit]");
+      const data = Object.fromEntries(new FormData(settingsForm));
+      Object.keys(data).forEach((key) => { data[key] = Number(data[key]); });
+      message.hidden = true;
+      savingSettings = true;
+      setBusy(button, true);
+      plannerButton.disabled = true;
+      createOrder.disabled = true;
+      currentItems = [];
+      summary.hidden = true;
+      try {
+        const result = await requestJson(`/api/v1/shops/${shopId}`, {
+          method: "PATCH", body: JSON.stringify(data),
+        });
+        form.elements.budget.value = result.cash_budget;
+        settingsForm.elements.cash_budget.value = result.cash_budget;
+        settingsForm.elements.review_period_days.value = result.review_period_days;
+        settingsForm.elements.safety_stock_days.value = result.safety_stock_days;
+        document.getElementById("planner-assumptions").textContent =
+          `Uses 14 days of demand, ${result.review_period_days}-day review periods and ${result.safety_stock_days} day of safety stock.`;
+        message.className = "alert alert-success mt-3 mb-0";
+        message.textContent = result.message ||
+          `Shop settings saved: R${Number(result.cash_budget).toFixed(2)} budget, ${result.review_period_days}-day review, ${result.safety_stock_days} safety-stock days.`;
+        message.hidden = false;
+        savingSettings = false;
+        await calculate();
+      } catch (error) {
+        message.className = "alert alert-danger mt-3 mb-0";
+        message.textContent = error.message;
+        message.hidden = false;
+      } finally {
+        savingSettings = false;
+        setBusy(button, false);
+        plannerButton.disabled = false;
+      }
+    });
     document.querySelector("[data-retry]")?.addEventListener("click", calculate);
     document.getElementById("create-order")?.addEventListener("click", async (event) => {
       if (!currentItems.length) return;

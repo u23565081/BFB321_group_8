@@ -1,37 +1,101 @@
 {% extends "base.html" %}
 {% block title %}Overview | StockWise Soweto{% endblock %}
 {% block content %}
-<section class="page-shell">
-  <div class="page-heading heading-with-action">
-    <div><span class="eyebrow">{{ shop.code }}</span><h1>Good day, {{ current_user.name.split()[0] }}</h1><p>Here is what needs attention at {{ shop.name }}.</p></div>
-    <a class="button button-primary" href="{{ url_for('web.replenishment') }}">Prepare an order</a>
-  </div>
-  <div class="kpi-grid">
-    <article class="kpi-card"><div aria-hidden="true" class="kpi-icon green">R</div><div><small>Stock value</small><strong>R{{ "{:,.0f}".format(inventory_value) }}</strong><span>Cash held in inventory</span></div></article>
-    <article class="kpi-card"><div aria-hidden="true" class="kpi-icon amber">!</div><div><small>Low-stock items</small><strong>{{ low_stock }}</strong><span>One pack or less, including stockouts</span></div></article>
-    <article class="kpi-card"><div aria-hidden="true" class="kpi-icon red">0</div><div><small>Stockouts</small><strong>{{ stockouts }}</strong><span>{{ 'No shelves empty' if stockouts == 0 else 'Needs action today' }}</span></div></article>
-    <article class="kpi-card"><div aria-hidden="true" class="kpi-icon blue">↗</div><div><small>Open orders</small><strong>{{ open_orders }}</strong><span>Approved or on the way</span></div></article>
-  </div>
-  <div class="dashboard-grid">
-    <section class="panel action-panel">
-      <div class="panel-heading"><div><h2>Today's focus</h2><p>Complete these actions to keep records reliable.</p></div></div>
-      <div class="action-list">
-        <a href="{{ url_for('web.inventory') }}"><span aria-hidden="true" class="action-icon">1</span><div><strong>Capture today's sales</strong><small>Keep stock and demand up to date</small></div><span aria-hidden="true">→</span></a>
-        <a href="{{ url_for('web.replenishment') }}"><span aria-hidden="true" class="action-icon">2</span><div><strong>Review low-stock suggestions</strong><small>Suggestions respect the R{{ "{:,.0f}".format(shop.cash_budget) }} budget</small></div><span aria-hidden="true">→</span></a>
-        <a href="{{ url_for('web.orders') }}"><span aria-hidden="true" class="action-icon">3</span><div><strong>Check open deliveries</strong><small>Receive stock when it arrives</small></div><span aria-hidden="true">→</span></a>
+  <section class="container py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+      <div>
+        <p class="eyebrow">{{ shop.code }}</p>
+        <h1>Good day, {{ current_user.name.split()[0] }}</h1>
+        <p class="text-body-secondary mb-0">Here is what needs attention at {{ shop.name }}.</p>
       </div>
-    </section>
-    <section class="panel">
-      <div class="panel-heading"><div><h2>Recent movements</h2><p>Latest entries in the stock ledger.</p></div><a class="text-link" href="{{ url_for('web.inventory') }}">View stock</a></div>
-      {% if recent_movements %}
-      <ul class="movement-list">
-        {% for movement in recent_movements %}
-        <li><span class="movement-dot {{ 'in' if movement.quantity > 0 else 'out' }}"></span><div><strong>{{ movement.product.name }}</strong><small>{{ movement.movement_type|replace('_',' ')|title }} · <time datetime="{{ movement.created_at.isoformat() }}">{{ movement.created_at.strftime('%d %b %Y, %H:%M') }}</time></small></div><b class="{{ 'positive' if movement.quantity > 0 else 'negative' }}">{{ '+' if movement.quantity > 0 else '' }}{{ movement.quantity }}</b></li>
-        {% endfor %}
-      </ul>
-      {% else %}<div class="empty-state compact"><strong>No movements yet</strong><p>Record a sale or receipt to start the stock ledger.</p><a class="text-link" href="{{ url_for('web.inventory') }}">Record a movement</a></div>{% endif %}
-    </section>
-  </div>
-</section>
+      <a class="btn btn-primary" href="{{ url_for('web.replenishment', shop_id=shop.id) }}">Prepare an order</a>
+    </div>
+    <div class="row g-3 mb-4">
+      {% for label, value, help in [('Stock value', 'R{:,.0f}'.format(inventory_value), 'Cash held in inventory'), ('Low-stock items', low_stock, 'One pack or less, including stockouts'), ('Stockouts', stockouts, 'No shelves empty' if stockouts == 0 else 'Needs action today'), ('Open orders', open_orders, 'Approved or on the way')] %}
+        <div class="col-12 col-sm-6 col-xl-3">
+          <article class="card h-100">
+            <div class="card-body">
+              <h2 class="h6 text-body-secondary">{{ label }}</h2>
+              <p class="fs-2 fw-bold mb-1">{{ value }}</p>
+              <p class="small text-body-secondary mb-0">{{ help }}</p>
+            </div>
+          </article>
+        </div>
+      {% endfor %}
+    </div>
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-md-4">
+        <article class="card h-100">
+          <div class="card-body">
+            <h2 class="h6 text-body-secondary">Items to reorder now</h2>
+            <p id="kpi-reorder" class="fs-2 fw-bold mb-1">{{ reorder_now }}</p>
+            <p class="small text-body-secondary mb-0">SKUs needing stock before budget and storage limits</p>
+          </div>
+        </article>
+      </div>
+      <div class="col-12 col-md-4">
+        <article class="card h-100">
+          <div class="card-body">
+            <h2 class="h6 text-body-secondary">Average days of cover</h2>
+            <p id="kpi-cover" class="fs-2 fw-bold mb-1">{{ '%.1f'|format(average_days_cover) if average_days_cover is not none else 'No demand data' }}</p>
+            <p class="small text-body-secondary mb-0">SKUs with demand; includes confirmed incoming stock</p>
+          </div>
+        </article>
+      </div>
+      <div class="col-12 col-md-4">
+        <article class="card h-100">
+          <div class="card-body">
+            <h2 class="h6 text-body-secondary">SKUs tracked</h2>
+            <p id="kpi-skus" class="fs-2 fw-bold mb-1">{{ skus_tracked }}</p>
+            <p class="small text-body-secondary mb-0">Active products in the replenishment catalogue</p>
+          </div>
+        </article>
+      </div>
+    </div>
+    <div class="row g-4">
+      <div class="col-12 col-lg-6">
+        <section class="card h-100">
+          <div class="card-body">
+            <h2 class="h5">Today's focus</h2>
+            <p class="text-body-secondary">Complete these actions to keep records reliable.</p>
+            <div class="list-group list-group-flush">
+              <a class="list-group-item list-group-item-action" href="{{ url_for('web.inventory', shop_id=shop.id) }}">Capture today's sales</a>
+              <a class="list-group-item list-group-item-action" href="{{ url_for('web.replenishment', shop_id=shop.id) }}">Review low-stock suggestions</a>
+              <a class="list-group-item list-group-item-action" href="{{ url_for('web.orders', shop_id=shop.id) }}">Check open deliveries</a>
+            </div>
+          </div>
+        </section>
+      </div>
+      <div class="col-12 col-lg-6">
+        <section class="card h-100">
+          <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
+              <h2 class="h5 mb-0">Recent movements</h2>
+              <a href="{{ url_for('web.inventory', shop_id=shop.id) }}">View stock</a>
+            </div>
+            {% if recent_movements %}
+              <ul class="list-group list-group-flush">
+                {% for movement in recent_movements %}
+                  <li class="list-group-item d-flex justify-content-between gap-3 px-0">
+                    <div>
+                      <strong class="d-block">{{ movement.product.name }}</strong>
+                      <small class="text-body-secondary">{{ movement.movement_type|replace('_', ' ')|title }}</small>
+                      <time class="d-block small text-body-secondary" datetime="{{ movement.created_at.isoformat() }}">{{ movement.created_at.strftime('%d %b %Y, %H:%M') }}</time>
+                    </div>
+                    <b class="{{ 'text-success' if movement.quantity > 0 else 'text-danger' }}">{{ '+' if movement.quantity > 0 else '' }}{{ movement.quantity }}</b>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <div class="alert alert-info mb-0">
+                <strong>No movements yet</strong>
+                <p>Record a sale or receipt to start the stock ledger.</p>
+                <a href="{{ url_for('web.inventory', shop_id=shop.id) }}">Record a movement</a>
+              </div>
+            {% endif %}
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
 {% endblock %}
-

@@ -1,3 +1,14 @@
 {% extends "base.html" %}
 {% block title %}{{ code }} | StockWise Soweto{% endblock %}
-{% block content %}<section class="page-shell"><div class="panel empty-state"><span>{{ code }}</span><strong>{{ message }}</strong><p>Return to the dashboard and try again.</p><a class="button button-primary" href="{{ url_for('web.dashboard') if current_user.is_authenticated else url_for('web.home') }}">Go back</a></div></section>{% endblock %}
+{% block content %}
+  <section class="container py-5">
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <p class="display-4 text-primary">{{ code }}</p>
+        <h1 class="h3">{{ message }}</h1>
+        <p class="text-body-secondary">Return to the dashboard and try again.</p>
+        <a class="btn btn-primary" href="{{ url_for('web.dashboard') if current_user.is_authenticated else url_for('web.home') }}">Go back</a>
+      </div>
+    </div>
+  </section>
+{% endblock %}

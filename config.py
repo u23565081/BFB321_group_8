@@ -1,12 +1,9 @@
 import os
-from pathlib import Path
 
 from dotenv import load_dotenv
 
 
 load_dotenv()
-
-BASE_DIR = Path(__file__).resolve().parent
 
 
 class BaseConfig:
@@ -18,11 +15,21 @@ class BaseConfig:
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
 
+class MySQLDatabaseURL:
+    """Validate on access so importing the pytest configuration needs no MySQL."""
+
+    def __get__(self, instance, owner):
+        value = os.getenv("DATABASE_URL", "").strip()
+        if not value.startswith("mysql+pymysql://"):
+            raise RuntimeError(
+                "Copy .env.example to .env and set DATABASE_URL to your MySQL database"
+            )
+        return value
+
+
 class DevelopmentConfig(BaseConfig):
-    DEBUG = True
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "DATABASE_URL", f"sqlite:///{BASE_DIR / 'instance' / 'spaza.db'}"
-    )
+    DEBUG = os.getenv("FLASK_DEBUG", "0").strip().lower() in {"1", "true", "yes", "on"}
+    SQLALCHEMY_DATABASE_URI = MySQLDatabaseURL()
 
 
 class TestingConfig(BaseConfig):
@@ -33,12 +40,12 @@ class TestingConfig(BaseConfig):
 
 class ProductionConfig(BaseConfig):
     DEBUG = False
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
+    SQLALCHEMY_DATABASE_URI = MySQLDatabaseURL()
 
     @classmethod
     def validate(cls):
-        if not cls.SQLALCHEMY_DATABASE_URI:
-            raise RuntimeError("DATABASE_URL is required in production.")
+        # Accessing the descriptor validates the required MySQL URL.
+        _ = cls.SQLALCHEMY_DATABASE_URI
         if cls.SECRET_KEY == "development-only-change-me":
             raise RuntimeError("SECRET_KEY must be changed in production.")
 

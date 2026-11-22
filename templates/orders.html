@@ -1,22 +1,75 @@
 {% extends "base.html" %}
 {% block title %}Orders | StockWise Soweto{% endblock %}
 {% block content %}
-<section class="page-shell" data-page="orders" data-shop-id="{{ shop.id }}">
-  <div class="page-heading heading-with-action"><div><span class="eyebrow">F3 · Delivery tracking</span><h1>Orders</h1><p>Approve baskets and record deliveries when stock arrives.</p></div><a class="button button-primary" href="{{ url_for('web.replenishment') }}">New basket</a></div>
-  {% if orders %}
-  <div class="order-list">
-    {% for order in orders %}
-    <article class="panel order-card" data-order-id="{{ order.id }}">
-      <div class="order-header"><div><span class="badge badge-{{ 'green' if order.status == 'received' else 'blue' if order.status in ['approved','placed'] else 'amber' }}">{{ order.status|title }}</span><h2>Order #{{ order.id }}</h2><p>{{ order.supplier.name }} · created {{ order.created_at.strftime('%d %b %Y') }}</p></div><div class="order-total"><small>Total</small><strong>R{{ "{:,.2f}".format(order.total_cost) }}</strong></div></div>
-      <div class="order-lines">{% for line in order.lines %}<div><span>{{ line.product.name }}</span><span>{{ line.quantity_ordered }} units</span><strong>R{{ "{:,.2f}".format(line.quantity_ordered * line.unit_cost) }}</strong></div>{% endfor %}</div>
-      <div class="order-footer">
-        <span>{% if order.expected_at %}Expected {{ order.expected_at.strftime('%d %b %Y') }}{% else %}Review before placing{% endif %}</span>
-        {% if order.status == 'draft' %}<button class="button button-primary" data-order-action="approve" type="button">Approve order</button>{% elif order.status in ['approved','placed'] %}<button class="button button-primary" data-order-action="receive" type="button">Receive all stock</button>{% else %}<span class="completed-label">Stock ledger updated</span>{% endif %}
+  <section class="container py-4" data-page="orders" data-shop-id="{{ shop.id }}">
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+      <div>
+        <p class="eyebrow">F3 · Delivery tracking</p>
+        <h1>Orders</h1>
+        <p class="text-body-secondary mb-0">Approve baskets and record deliveries when stock arrives.</p>
       </div>
-    </article>
-    {% endfor %}
-  </div>
-  {% else %}<section class="panel empty-state"><span>□</span><strong>No orders yet</strong><p>Calculate a replenishment basket to create the first order.</p><a class="button button-primary" href="{{ url_for('web.replenishment') }}">Prepare an order</a></section>{% endif %}
-</section>
+      <a class="btn btn-primary" href="{{ url_for('web.replenishment', shop_id=shop.id) }}">New basket</a>
+    </div>
+    {% if orders %}
+      <div class="row g-4">
+        {% for order in orders %}
+          <div class="col-12">
+            <article class="card" data-order-id="{{ order.id }}">
+              <div class="card-body">
+                <div class="d-flex flex-wrap justify-content-between gap-3 mb-3">
+                  <div>
+                    <span class="badge {{ 'text-bg-success' if order.status == 'received' else 'text-bg-info' if order.status in ['approved', 'placed'] else 'text-bg-warning' }}">{{ order.status|title }}</span>
+                    <h2 class="h5 mt-2">Order #{{ order.id }}</h2>
+                    <p class="small text-body-secondary mb-0">{{ order.supplier.name }} · created {{ order.created_at.strftime('%d %b %Y') }}</p>
+                  </div>
+                  <div>
+                    <small class="d-block text-body-secondary">Total</small>
+                    <strong class="fs-4">R{{ "{:,.2f}".format(order.total_cost) }}</strong>
+                  </div>
+                </div>
+                <div class="table-responsive">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Product</th>
+                        <th scope="col">Units</th>
+                        <th scope="col">Line cost</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for line in order.lines %}
+                        <tr>
+                          <td>{{ line.product.name }}</td>
+                          <td>{{ line.quantity_ordered }}</td>
+                          <td class="text-nowrap">R{{ "{:,.2f}".format(line.quantity_ordered * line.unit_cost) }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                  <span class="small text-body-secondary">{{ 'Expected ' ~ order.expected_at.strftime('%d %b %Y') if order.expected_at else 'Review before placing' }}</span>
+                  {% if order.status == 'draft' %}
+                    <button class="btn btn-primary" data-order-action="approve" type="button">Approve order</button>
+                  {% elif order.status in ['approved', 'placed'] %}
+                    <button class="btn btn-primary" data-order-action="receive" type="button">Receive all stock</button>
+                  {% else %}
+                    <span class="text-success">Stock ledger updated</span>
+                  {% endif %}
+                </div>
+              </div>
+            </article>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <section class="card">
+        <div class="card-body text-center py-5">
+          <h2 class="h5">No orders yet</h2>
+          <p>Calculate a replenishment basket to create the first order.</p>
+          <a class="btn btn-primary" href="{{ url_for('web.replenishment', shop_id=shop.id) }}">Prepare an order</a>
+        </div>
+      </section>
+    {% endif %}
+  </section>
 {% endblock %}
-

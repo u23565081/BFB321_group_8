@@ -49,84 +49,168 @@ This table records work that is visible in the repository history. It stays high
 
 These flows cover proposal features F1-F5 and objectives O1-O4.
 
-## How to open the working application (Windows)
+## Setup and run from a clean machine
 
-### Before you start
+Install Git, Python 3.11 or newer, and MySQL Community Server 8 (including the
+`mysql` command-line client). Start the MySQL service and add its `bin`
+directory to PATH. Internet access is needed to install Python packages and
+load Bootstrap from jsDelivr.
 
-- Install Python 3.12 or newer from <https://www.python.org/downloads/windows/>.
-- Open the downloaded installer, select **Add python.exe to PATH**, and then choose **Install Now**. Downloading the installer without opening it does not install Python.
-- An internet connection is needed the first time so that the required Python packages can be installed.
+Development and production require a complete `mysql+pymysql://` DATABASE_URL.
+Missing settings and SQLite URLs fail with setup instructions. In-memory SQLite
+is reserved for TestingConfig in pytest only.
 
-### Step 1: Download and extract the project
+### 1. Clone and install (Windows PowerShell)
 
-1. On this GitHub page, select the green **Code** button and then **Download ZIP**.
-2. Extract the downloaded `BFB321_group_8-main.zip` file.
-3. Open the extracted `BFB321_group_8-main` folder.
+```powershell
+git clone https://github.com/u23565081/BFB321_group_8.git
+cd BFB321_group_8
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+```
 
-### Step 2: Open PowerShell in the project folder
+If `python` opens the Microsoft Store, install Python from
+<https://www.python.org/downloads/windows/>, select **Add python.exe to PATH**,
+reopen PowerShell, and use `py -3` in place of `python`.
 
-Right-click an empty area inside the folder and select **Open in Terminal**. The PowerShell prompt should end with `BFB321_group_8-main>`.
+On Linux/macOS, use the same clone commands, then:
 
-### Step 3: Start the application
+```sh
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -r requirements-dev.txt
+```
 
-Copy and paste this single command into PowerShell, then press Enter:
+### 2. Create the MySQL database and account
+
+Connect as your MySQL administrator (enter its password when prompted):
+
+```sh
+mysql -u root -p
+```
+
+At the MySQL prompt, run these exact SQL statements on a fresh installation.
+The example password is for local demonstration only; if you change it, use
+the same password in .env.
+
+```sql
+CREATE DATABASE spaza_inventory CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'spaza_user'@'localhost' IDENTIFIED BY 'spaza_password';
+GRANT ALL PRIVILEGES ON spaza_inventory.* TO 'spaza_user'@'localhost';
+EXIT;
+```
+
+Import the schema from the project folder. PowerShell does not support input
+redirection with `<`, so run it through cmd:
+
+```powershell
+cmd /c "mysql -h localhost -u spaza_user -p spaza_inventory < database\schema.sql"
+```
+
+On Linux/macOS:
+
+```sh
+mysql -h localhost -u spaza_user -p spaza_inventory < database/schema.sql
+```
+
+Enter `spaza_password` when prompted. If MySQL is on a different host, create
+the account for the actual client host and adjust DATABASE_URL accordingly.
+
+### 3. Configure the environment
+
+Windows:
+
+```powershell
+Copy-Item .env.example .env
+notepad .env
+```
+
+Linux/macOS:
+
+```sh
+cp .env.example .env
+nano .env
+```
+
+Set the following values and save the file:
+
+```dotenv
+FLASK_ENV=development
+FLASK_DEBUG=0
+HOST=127.0.0.1
+SECRET_KEY=replace-with-a-long-random-value
+DATABASE_URL=mysql+pymysql://spaza_user:spaza_password@localhost:3306/spaza_inventory
+LOG_LEVEL=INFO
+```
+
+Generate a secret with `python -c "import secrets; print(secrets.token_hex(32))"`
+(use the venv Python on Windows). URL-encode special characters in database
+passwords when putting them in DATABASE_URL. Existing process environment
+variables take precedence over .env. Do not commit .env.
+
+### 4. Seed and run
+
+Windows:
+
+```powershell
+.\.venv\Scripts\python.exe database\seed.py
+.\.venv\Scripts\python.exe run.py
+```
+
+Linux/macOS (with the virtual environment active):
+
+```sh
+python database/seed.py
+python run.py
+```
+
+Seeding is idempotent. Open <http://127.0.0.1:5000> and sign in:
+
+| Role | Email | Password |
+|---|---|---|
+| Shop owner | owner@demo.co.za | demo2026 |
+| Administrator | admin@demo.co.za | admin2026 |
+
+Press Ctrl+C to stop. Debugging is off by default; errors are logged and users
+receive a friendly error page rather than a Werkzeug traceback. FLASK_DEBUG=1
+is for local debugging only. HOST defaults to 127.0.0.1.
+
+### Start scripts after database setup
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\start.ps1
 ```
 
-The first start may take a few minutes. The script creates a private Python environment, installs the required packages and loads the demonstration data. Wait until PowerShell shows:
-
-```text
-Running on http://127.0.0.1:5000
+```sh
+sh scripts/start.sh
 ```
 
-### Step 4: Open the application and sign in
+Both scripts copy .env.example to .env and stop if .env is missing. Edit it and
+rerun. They require a MySQL URL, install dependencies, seed, then start the app.
+They do not create the local MySQL account or import the SQL schema for you.
 
-Open <http://127.0.0.1:5000> in a web browser and use either of these demonstration accounts:
+### MySQL run with Docker
 
-- Shop owner: `owner@demo.co.za` / `demo2026`
-- Administrator: `admin@demo.co.za` / `admin2026`
-
-The shop-owner account is recommended for the main demonstration. To stop the application, return to PowerShell and press `Ctrl+C`.
-
-### If PowerShell says that Python was not found
-
-The `python` command may be a Microsoft Store shortcut rather than a working installation. Open the Python installer you downloaded, select **Add python.exe to PATH**, and complete the installation. Close and reopen PowerShell afterward, then run the start command again. You can confirm that Python is available by running `py --version` or `python --version`.
-
-> **Note:** GitHub displays and stores the project files, but it cannot run this Flask application directly like a normal webpage. The project must be downloaded and started using the steps above.
-
-## MySQL run with Docker
-
-Install Docker Desktop, then run:
+Install and start Docker Desktop. Clone the repository, copy .env.example to
+.env and set a secret as above, then run:
 
 ```powershell
-docker compose up --build
+powershell -ExecutionPolicy Bypass -File .\scripts\start.ps1 -MySQL
 ```
 
-Open <http://127.0.0.1:5000>. Docker starts MySQL 8, applies `database/schema.sql`, seeds the same five shops and runs the app with Gunicorn.
+Or on Linux/macOS:
 
-To stop the services without removing data:
-
-```powershell
-docker compose down
+```sh
+sh scripts/start.sh --mysql
 ```
 
-To start again, use `docker compose up`. The seed script is idempotent, so it does not duplicate demo data.
-
-## Manual setup with an existing MySQL server
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements-dev.txt
-mysql -u root -p -e "SOURCE database/schema.sql"
-Copy-Item .env.example .env
-python database\seed.py
-python run.py
-```
-
-Change the credentials in `.env` before running the seed script. Do not commit `.env`.
+Alternatively use `docker compose up --build` directly. Compose starts MySQL
+8.4, imports the schema on its first empty volume, seeds the data and starts
+Gunicorn. It supplies its own database connection to the web container; local
+.env credentials do not replace those Compose defaults. The supplied Compose
+credentials are for a local demo. Open <http://127.0.0.1:5000> and use the same
+logins. Stop with `docker compose down`; restart with `docker compose up`.
+The database volume persists. Port 3306 must be free when using Compose.
 
 ## Replenishment model
 
@@ -208,7 +292,21 @@ The script writes JSON and CSV evidence to `docs/generated/`. Its results are mo
 
 ## Deployment and operations
 
-Production configuration uses `FLASK_ENV=production`, a long random `SECRET_KEY`, and a MySQL `DATABASE_URL`. Gunicorn starts two worker processes. Application logs rotate at 1 MB with three retained files. For a public deployment, put Nginx or another HTTPS reverse proxy in front of Gunicorn.
+Set `FLASK_ENV=production`, `FLASK_DEBUG=0`, a long random `SECRET_KEY`,
+and a MySQL `DATABASE_URL` in the deployment environment. SQLite and a missing
+database URL are rejected; production also rejects the development secret.
+On a Linux host with dependencies installed:
+
+```sh
+python database/seed.py
+gunicorn --bind 127.0.0.1:5000 --workers 2 --access-logfile - run:app
+```
+
+Put an HTTPS reverse proxy in front of Gunicorn. Containers need an explicit
+`--bind 0.0.0.0:5000` (as in Compose); keep their published ports restricted
+appropriately. HOST controls the Python development entry points, not Gunicorn.
+Application logs rotate at 1 MB with three retained files. Never enable the
+development debugger on a shared server.
 
 Database migration and rollback:
 
