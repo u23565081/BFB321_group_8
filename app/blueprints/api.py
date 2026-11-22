@@ -1,5 +1,6 @@
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
+from math import isfinite
 
 from flask import Blueprint, current_app, jsonify, request
 from flask_login import current_user, login_required
@@ -101,16 +102,35 @@ def product_number(field, value, maximum):
     return number
 
 
-def product_page_args():
-    values = {}
-    for field, default in (("page", 1), ("per_page", current_app.config["ITEMS_PER_PAGE"])):
-        try:
-            values[field] = int(request.args.get(field, default))
-        except (TypeError, ValueError):
-            raise ValueError(f"{field} must be a whole number.") from None
-    values["page"] = max(1, values["page"])
-    values["per_page"] = min(50, max(1, values["per_page"]))
-    return values
+def query_number(field, converter=int, default=None):
+    raw = request.args.get(field)
+    if raw is None:
+        return default
+    try:
+        value = converter(raw)
+    except (TypeError, ValueError, OverflowError):
+        kind = "a whole number" if converter is int else "a finite number"
+        raise ValueError(f"{field} must be {kind}.") from None
+    if converter is float and not isfinite(value):
+        raise ValueError(f"{field} must be a finite number.")
+    return value
+
+
+def pagination_args(default_per_page=None):
+    if default_per_page is None:
+        default_per_page = current_app.config["ITEMS_PER_PAGE"]
+    return {
+        "page": max(1, query_number("page", default=1)),
+        "per_page": min(50, max(1, query_number("per_page", default=default_per_page))),
+    }
+
+
+def order_status_filter():
+    status = request.args.get("status")
+    allowed = ("draft", "approved", "placed", "received", "cancelled")
+    if status is not None and status not in allowed:
+        raise ValueError("status must be one of: " + ", ".join(allowed) + ".")
+    return status
 
 
 @api_bp.get("/products")
@@ -118,7 +138,7 @@ def product_page_args():
 def product_list():
     """List products with pagination, category, active and name/SKU filters."""
     try:
-        page_args = product_page_args()
+        page_args = pagination_args()
     except ValueError as exc:
         return error(str(exc))
     query = Product.query
@@ -248,16 +268,19 @@ def update_shop(shop_id):
 @api_bp.get("/inventory")
 @login_required
 def inventory_list():
-    shop = owned_shop(request.args.get("shop_id", type=int))
+    try:
+        shop_id = query_number("shop_id")
+        page_args = pagination_args()
+    except ValueError as exc:
+        return error(str(exc))
+    shop = owned_shop(shop_id)
     if not shop:
         return error("Shop not found or access denied.", 404, "not_found")
-    page = max(1, request.args.get("page", 1, type=int))
-    per_page = min(50, max(1, request.args.get("per_page", current_app.config["ITEMS_PER_PAGE"], type=int)))
     search = request.args.get("q", "").strip()
     query = InventoryBalance.query.filter_by(shop_id=shop.id).join(Product)
     if search:
         query = query.filter(or_(Product.name.ilike(f"%{search}%"), Product.sku.ilike(f"%{search}%")))
-    pagination = query.order_by(Product.name).paginate(page=page, per_page=per_page, error_out=False)
+    pagination = query.order_by(Product.name).paginate(**page_args, error_out=False)
     return jsonify(
         {
             "items": [serialize_inventory(row) for row in pagination.items],
@@ -332,13 +355,17 @@ def create_movement():
 @api_bp.get("/recommendations")
 @login_required
 def recommendations():
-    shop = owned_shop(request.args.get("shop_id", type=int))
+    try:
+        shop_id = query_number("shop_id")
+        supplier_id = query_number("supplier_id")
+        budget = query_number("budget", converter=float)
+    except ValueError as exc:
+        return error(str(exc))
+    shop = owned_shop(shop_id)
     if not shop:
         return error("Shop not found or access denied.", 404, "not_found")
-    supplier_id = request.args.get("supplier_id", type=int)
-    budget = request.args.get("budget", type=float)
     if budget is not None and budget < 0:
-        return error("Budget cannot be negative.", fields=["budget"])
+        return error("budget cannot be negative.", fields=["budget"])
     items, totals = generate_recommendations(shop, supplier_id=supplier_id, budget=budget)
     return jsonify(
         {
@@ -355,18 +382,21 @@ def recommendations():
 @api_bp.get("/orders")
 @login_required
 def order_list():
-    shop = owned_shop(request.args.get("shop_id", type=int))
+    try:
+        shop_id = query_number("shop_id")
+        page_args = pagination_args(default_per_page=10)
+        status = order_status_filter()
+    except ValueError as exc:
+        return error(str(exc))
+    shop = owned_shop(shop_id)
     if not shop:
         return error("Shop not found or access denied.", 404, "not_found")
-    page = max(1, request.args.get("page", 1, type=int))
-    per_page = min(50, max(1, request.args.get("per_page", 10, type=int)))
     query = Order.query.filter_by(shop_id=shop.id)
-    status = request.args.get("status")
     if status:
         query = query.filter_by(status=status)
-    pagination = query.order_by(Order.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    pagination = query.order_by(Order.created_at.desc()).paginate(**page_args, error_out=False)
     return jsonify(
-        {"items": [serialize_order(row) for row in pagination.items], "page": page, "pages": pagination.pages, "total": pagination.total}
+        {"items": [serialize_order(row) for row in pagination.items], "page": pagination.page, "pages": pagination.pages, "total": pagination.total}
     )
 
 
