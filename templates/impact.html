@@ -1,13 +1,131 @@
 {% extends "base.html" %}
 {% block title %}Impact | StockWise Soweto{% endblock %}
 {% block content %}
-<section class="page-shell">
-  <div class="page-heading"><span class="eyebrow">O2–O4 · Evaluation</span><h1>Expected impact</h1><p>A transparent comparison using a deterministic 28-day simulation. These are model results, not live shop outcomes.</p></div>
-  <div class="impact-highlight"><div><span>Simulated change</span><strong>−72%</strong><p>stockout SKU-days compared with reactive ordering</p></div><div class="impact-chart" aria-label="Stockout SKU-days decreased from 18 to 5"><div><span>Reactive baseline</span><i style="--bar: 100%">18</i></div><div><span>StockWise rule</span><i class="green-bar" style="--bar: 28%">5</i></div></div></div>
-  <div class="kpi-grid impact-kpis"><article class="kpi-card"><div><small>Emergency trips</small><strong>56 → 0</strong><span class="positive">No emergency collections in this run</span></div></article><article class="kpi-card"><div><small>Average stock value</small><strong>R3 507 → R3 384</strong><span class="positive">3.5% lower</span></div></article><article class="kpi-card"><div><small>Constraint breaches</small><strong>0 → 0</strong><span class="positive">Cash limit maintained</span></div></article><article class="kpi-card"><div><small>Availability</small><strong>96.8% → 99.1%</strong><span class="positive">2.3 percentage points</span></div></article></div>
-  <div class="dashboard-grid">
-    <section class="panel"><div class="panel-heading"><div><h2>How the result was tested</h2><p>Same demand and lead-time scenario for both methods.</p></div></div><ol class="method-list"><li><span>1</span><p>Twenty non-refrigerated SKUs over 28 days.</p></li><li><span>2</span><p>Reactive baseline orders only after stock reaches zero.</p></li><li><span>3</span><p>StockWise uses cover, full packs and budget/storage checks.</p></li><li><span>4</span><p>Fixed random seed makes the result repeatable.</p></li></ol></section>
-    <section class="panel"><div class="panel-heading"><div><h2>Sustainability and scale</h2><p>Designed for low-cost use and careful expansion.</p></div></div><ul class="plain-list"><li><strong>Use existing phones</strong><span>No new scanning equipment is required.</span></li><li><strong>Protect privacy</strong><span>Shop codes replace names; no customer personal data is stored.</span></li><li><strong>Add more shops</strong><span>Shop-level records and role checks support multi-site growth.</span></li><li><strong>Keep people in control</strong><span>Suggestions are provisional when demand data is weak.</span></li></ul></section>
+<section class="container py-4">
+  <div class="mb-4">
+    <p class="text-uppercase text-muted small mb-1">O2–O4 · Evaluation</p>
+    <h1 class="h2">Expected impact</h1>
+    <p class="lead mb-0">A transparent comparison using a deterministic 28-day simulation. These are model results, not live shop outcomes.</p>
   </div>
+
+  {% if results_missing %}
+  <div class="alert alert-warning" role="status">
+    <h2 class="alert-heading h5">Impact results are not available yet</h2>
+    <p class="mb-0">The simulation output file is missing. Generate it with <code>python scripts/evaluate_impact.py</code> and reload this page.</p>
+  </div>
+  {% else %}
+  <div class="alert alert-info" role="status">
+    These figures are simulation outputs read from <code>docs/generated/impact_results.json</code>. They are not measurements from operating shops.
+  </div>
+
+  <div class="row g-4 mb-4">
+    <div class="col-lg-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <p class="text-muted mb-1">Simulated change</p>
+          <p class="display-6 mb-1">−{{ stockout_reduction }}%</p>
+          <p class="mb-0">fewer stockout SKU-days than reactive ordering</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-8">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h5">Stockout SKU-days</h2>
+          <div class="mb-3">
+            <div class="d-flex justify-content-between"><span>Reactive baseline</span><span>{{ reactive_stockouts }}</span></div>
+            <div class="progress" role="progressbar" aria-label="Reactive stockout SKU-days" aria-valuenow="{{ reactive_stockouts }}" aria-valuemin="0" aria-valuemax="{{ reactive_stockouts }}">
+              <div class="progress-bar" style="width: 100%">{{ reactive_stockouts }}</div>
+            </div>
+          </div>
+          <div>
+            <div class="d-flex justify-content-between"><span>StockWise rule</span><span>{{ stockwise_stockouts }}</span></div>
+            <div class="progress" role="progressbar" aria-label="StockWise stockout SKU-days" aria-valuenow="{{ stockwise_stockouts }}" aria-valuemin="0" aria-valuemax="{{ reactive_stockouts }}">
+              <div class="progress-bar bg-success" style="width: {{ stockwise_bar }}%">{{ stockwise_stockouts }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="h4">Table 1. Before-and-after KPIs</h2>
+  <div class="table-responsive mb-4">
+    <table class="table table-striped align-middle">
+      <caption>Seed 321 headline run with equal opening stock. Simulation output, not a shop measurement.</caption>
+      <thead>
+        <tr>
+          <th scope="col">Measure</th>
+          <th scope="col">Reactive baseline</th>
+          <th scope="col">StockWise rule</th>
+          <th scope="col">Change</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in kpi_rows %}
+        <tr>
+          <th scope="row">{{ row.label }}</th>
+          <td>{{ row.reactive }}</td>
+          <td>{{ row.stockwise }}</td>
+          <td>{{ row.change }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="h4">Sensitivity summary</h2>
+  <p>Seeds 1–30, repeated at two opening-cover levels. A seed reaches the target when stockout SKU-days fall by at least 20%.</p>
+  <div class="row g-3 mb-4">
+    {% for run in sensitivity_runs %}
+    <div class="col-md-6">
+      <article class="card h-100">
+        <div class="card-body">
+          <h3 class="h5">Opening cover {{ run.opening_cover }} days</h3>
+          <p class="mb-2"><span class="badge bg-primary">{{ run.reached }} of {{ run.seed_count }}</span> seeds reach at least a 20% reduction.</p>
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex justify-content-between"><span>Median reduction</span><span>{{ run.median }}%</span></li>
+            <li class="list-group-item d-flex justify-content-between"><span>Minimum</span><span>{{ run.minimum }}% (seed {{ run.min_seed }})</span></li>
+            <li class="list-group-item d-flex justify-content-between"><span>Maximum</span><span>{{ run.maximum }}% (seed {{ run.max_seed }})</span></li>
+            <li class="list-group-item d-flex justify-content-between"><span>Total stockout SKU-days</span><span>{{ run.reactive_stockouts }} reactive, {{ run.stockwise_stockouts }} StockWise</span></li>
+            <li class="list-group-item d-flex justify-content-between"><span>Stock value at or below baseline</span><span>{{ run.stock_value_seeds }} of {{ run.seed_count }}</span></li>
+            <li class="list-group-item d-flex justify-content-between"><span>StockWise breaches</span><span>{{ run.breaches }}</span></li>
+            <li class="list-group-item d-flex justify-content-between"><span>StockWise emergency collections</span><span>{{ run.emergency }}</span></li>
+          </ul>
+        </div>
+      </article>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="row g-3">
+    <div class="col-md-6">
+      <section class="card h-100">
+        <div class="card-body">
+          <h2 class="h5">How the result was tested</h2>
+          <ol class="list-group list-group-numbered">
+            <li class="list-group-item">Twenty non-refrigerated SKUs over 28 days.</li>
+            <li class="list-group-item">Both policies open with the same stock.</li>
+            <li class="list-group-item">Reactive ordering buys only after stock reaches zero.</li>
+            <li class="list-group-item">StockWise reviews every three days, in full packs, within cash and storage limits.</li>
+          </ol>
+        </div>
+      </section>
+    </div>
+    <div class="col-md-6">
+      <section class="card h-100">
+        <div class="card-body">
+          <h2 class="h5">Sustainability and scale</h2>
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item"><strong>Use existing phones.</strong> No new scanning equipment is required.</li>
+            <li class="list-group-item"><strong>Protect privacy.</strong> Shop codes replace names; no customer personal data is stored.</li>
+            <li class="list-group-item"><strong>Add more shops.</strong> Shop-level records and role checks support multi-site growth.</li>
+            <li class="list-group-item"><strong>Keep people in control.</strong> Suggestions are provisional when demand data is weak.</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </div>
+  {% endif %}
 </section>
 {% endblock %}
