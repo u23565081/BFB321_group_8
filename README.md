@@ -9,20 +9,20 @@ This implementation develops the Group 8 BFB 321 proposal into a complete Flask 
 | Name | Student number | GitHub username |
 |---|---|---|
 | Andrew Holdt | u23565081 | u23565081 |
-| Austin Ferraz | u23627132 | u23627132-Ferraz |
+| Austin Ferraz | u23627132 | 23627132-Ferraz |
 | David de Villiers | u23570972 | 23570972 |
 | David Plumb | u23526263 | u23526263-hash |
 
 ## Task allocation
 
-This table records work that is visible in the repository history. It stays high-level where a member has not written their own detail. Shared product work from the initial upload is not split into invented personal task lists.
+This table records each member's main work as it appears in the commit history and pull requests.
 
-| Member | Focus recorded in the repository |
+| Member | Work recorded in the repository |
 |---|---|
-| Andrew Holdt (`u23565081`) | Initial project upload, and the Windows run documentation in `README.md` and `scripts/start.ps1` (Python installation and the Microsoft Store `python` alias). |
-| Austin Ferraz | Added a “Record a movement” link to the dashboard when there are no stock entries. Added the year to movement dates to make older entries easier to identify. |
-| David de Villiers (`23570972`) | Improved dashboard accessibility by hiding decorative icons from screen readers and clarified that the low-stock count includes stockouts (PR #2). |
-| David Plumb (`u23526263-hash`) | Documentation and rubric readiness: GitHub usernames, this allocation, submission-checklist clarifications, and contribution notes. |
+| Andrew Holdt (`u23565081`) | First version of the application, uploaded on 21 October: MySQL schema and seed data, Flask application structure, the replenishment model, the first REST API, pages and tests. Windows run documentation in `README.md` and `scripts/start.ps1`. Compiled the final report. |
+| Austin Ferraz (`23627132-Ferraz`) | REST API extensions (22 November): product list, detail, create and update endpoints with validation and duplicate-SKU handling; order detail endpoint; shop reorder-settings update (`PATCH /shops/{id}`); validation of numeric query parameters and order status filters; order lifecycle logging. Earlier dashboard improvements: a “Record a movement” link when the ledger is empty and dated movement timestamps (9 November). |
+| David de Villiers (`23570972`) | MySQL-only configuration with `.env` loading fixed and covered by tests; the Bootstrap 5 front end across every page; live dashboard KPIs from the replenishment model (items to reorder now, average days of cover); start-script, page and front-end tests (22 November). Earlier dashboard accessibility fixes (PR #2, 8 November). |
+| David Plumb (`u23526263-hash`) | Fair impact evaluation (PR #3, 21–22 November): equal opening stock for both policies, trip-day and constraint-violation counters, a 30-seed sensitivity comparison, the Impact page reading the generated results, and impact tests. These commits were authored through the Cursor coding agent, which is why `cursoragent` appears among the contributors. Earlier documentation and rubric-readiness work (PR #1, 5 November). |
 
 ![Dashboard showing stock KPIs and recent movements](docs/screenshots/dashboard.png)
 
@@ -233,15 +233,21 @@ All endpoints require a signed-in session. Full request and response details are
 
 | Method | Endpoint | Purpose |
 |---|---|---|
+| `GET` | `/api/v1/products` | Paginated products, filtered by `category`, `active` or name/SKU (`q`) |
+| `GET` | `/api/v1/products/{id}` | One product |
+| `POST` | `/api/v1/products` | Create a product (administrators only) |
+| `PATCH` | `/api/v1/products/{id}` | Update a product's editable fields (administrators only) |
 | `GET` | `/api/v1/inventory` | Paginated and filtered stock balances |
 | `POST` | `/api/v1/movements` | Record a stock movement |
 | `GET` | `/api/v1/recommendations` | Calculate a constrained supplier basket |
 | `GET` | `/api/v1/orders` | Paginated orders with status filtering |
+| `GET` | `/api/v1/orders/{id}` | One order with its lines |
 | `POST` | `/api/v1/orders` | Create a full-pack draft order |
 | `POST` | `/api/v1/orders/{id}/approve` | Recheck cash and storage, then approve |
 | `POST` | `/api/v1/orders/{id}/receive` | Receive outstanding lines and update stock |
+| `PATCH` | `/api/v1/shops/{id}` | Update the shop's cash budget, storage capacity, review period and safety stock |
 
-Validation errors use a consistent JSON structure:
+Bad input returns `400`, a missing or inaccessible record returns `404`, an action reserved for administrators returns `403`, and a duplicate SKU returns `409`. Validation errors use a consistent JSON structure:
 
 ```json
 {

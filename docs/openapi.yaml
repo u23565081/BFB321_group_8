@@ -8,6 +8,52 @@ servers:
 security:
   - sessionCookie: []
 paths:
+  /products:
+    get:
+      summary: List products with pagination and optional filters
+      parameters:
+        - {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}
+        - {name: per_page, in: query, schema: {type: integer, minimum: 1, maximum: 50, default: 10}}
+        - {name: category, in: query, description: Exact category match, schema: {type: string}}
+        - {name: active, in: query, schema: {type: string, enum: ['true', 'false', '1', '0']}}
+        - {name: q, in: query, description: Product name or SKU filter, schema: {type: string}}
+      responses:
+        '200': {description: Paginated products, content: {application/json: {schema: {$ref: '#/components/schemas/PaginatedProducts'}}}}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorised'}
+    post:
+      summary: Create a product (administrators only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ProductInput'}
+      responses:
+        '201': {description: Product created, content: {application/json: {schema: {$ref: '#/components/schemas/Product'}}}}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /products/{product_id}:
+    parameters:
+      - {name: product_id, in: path, required: true, schema: {type: integer}}
+    get:
+      summary: Return one product
+      responses:
+        '200': {description: The product, content: {application/json: {schema: {$ref: '#/components/schemas/Product'}}}}
+        '404': {$ref: '#/components/responses/NotFound'}
+    patch:
+      summary: Update a product's editable fields (administrators only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ProductUpdate'}
+      responses:
+        '200': {description: Product updated, content: {application/json: {schema: {$ref: '#/components/schemas/Product'}}}}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
   /inventory:
     get:
       summary: List inventory balances
@@ -58,6 +104,14 @@ paths:
       responses:
         '201': {description: Draft order created}
         '400': {$ref: '#/components/responses/ValidationError'}
+  /orders/{order_id}:
+    get:
+      summary: Return one accessible order with its lines
+      parameters:
+        - {name: order_id, in: path, required: true, schema: {type: integer}}
+      responses:
+        '200': {description: The order, content: {application/json: {schema: {$ref: '#/components/schemas/Order'}}}}
+        '404': {$ref: '#/components/responses/NotFound'}
   /orders/{order_id}/approve:
     post:
       summary: Approve a draft after cash and storage checks
@@ -74,6 +128,21 @@ paths:
       responses:
         '200': {description: Order received and stock balances updated}
         '409': {description: Invalid order status}
+  /shops/{shop_id}:
+    patch:
+      summary: Update a shop's reorder settings
+      parameters:
+        - {name: shop_id, in: path, required: true, schema: {type: integer}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ShopSettingsInput'}
+      responses:
+        '200': {description: Saved settings, content: {application/json: {schema: {$ref: '#/components/schemas/ShopSettings'}}}}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
 components:
   securitySchemes:
     sessionCookie:
@@ -85,6 +154,21 @@ components:
       description: A signed-in session is required
     ValidationError:
       description: Input failed validation
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    Forbidden:
+      description: The signed-in user may not perform this action
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    NotFound:
+      description: The record does not exist or belongs to another owner
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    Conflict:
+      description: The change conflicts with existing data, such as a duplicate SKU
       content:
         application/json:
           schema: {$ref: '#/components/schemas/Error'}
@@ -148,4 +232,85 @@ components:
             total_cost: {type: number}
         provisional: {type: boolean}
         message: {type: string}
+    Product:
+      type: object
+      properties:
+        id: {type: integer}
+        sku: {type: string}
+        name: {type: string}
+        category: {type: string}
+        pack_size: {type: integer, minimum: 1}
+        unit_cost: {type: number}
+        supplier_id: {type: integer}
+        storage_units_per_item: {type: number}
+        active: {type: boolean}
+    ProductInput:
+      type: object
+      required: [sku, name, category, pack_size, unit_cost, supplier_id]
+      additionalProperties: false
+      properties:
+        sku: {type: string, maxLength: 40}
+        name: {type: string, maxLength: 120}
+        category: {type: string, maxLength: 80}
+        pack_size: {type: integer, minimum: 1}
+        unit_cost: {type: number, minimum: 0, maximum: 99999999.99}
+        supplier_id: {type: integer, minimum: 1, description: Must identify an existing supplier}
+        storage_units_per_item: {type: number, minimum: 0.001, maximum: 99999.999}
+        active: {type: boolean}
+    ProductUpdate:
+      type: object
+      description: Any subset of the editable fields; sku and supplier_id cannot be changed.
+      additionalProperties: false
+      properties:
+        name: {type: string, maxLength: 120}
+        category: {type: string, maxLength: 80}
+        pack_size: {type: integer, minimum: 1}
+        unit_cost: {type: number, minimum: 0, maximum: 99999999.99}
+        storage_units_per_item: {type: number, minimum: 0.001, maximum: 99999.999}
+        active: {type: boolean}
+    PaginatedProducts:
+      type: object
+      properties:
+        items: {type: array, items: {$ref: '#/components/schemas/Product'}}
+        page: {type: integer}
+        pages: {type: integer}
+        total: {type: integer}
+    Order:
+      type: object
+      properties:
+        id: {type: integer}
+        status: {type: string, enum: [draft, approved, placed, received, cancelled]}
+        supplier: {type: string}
+        supplier_id: {type: integer}
+        total_cost: {type: number}
+        delivery_fee: {type: number}
+        created_at: {type: string, format: date-time}
+        expected_at: {type: string, format: date-time, nullable: true}
+        lines:
+          type: array
+          items:
+            type: object
+            properties:
+              product_id: {type: integer}
+              product: {type: string}
+              quantity_ordered: {type: integer}
+              quantity_received: {type: integer}
+              unit_cost: {type: number}
+    ShopSettingsInput:
+      type: object
+      description: Any subset of the reorder settings.
+      additionalProperties: false
+      properties:
+        cash_budget: {type: number, minimum: 0, maximum: 9999999999.99}
+        storage_capacity_units: {type: integer, minimum: 0}
+        review_period_days: {type: integer, minimum: 1}
+        safety_stock_days: {type: integer, minimum: 0}
+    ShopSettings:
+      type: object
+      properties:
+        id: {type: integer}
+        cash_budget: {type: number}
+        storage_capacity_units: {type: integer}
+        review_period_days: {type: integer}
+        safety_stock_days: {type: integer}
 
